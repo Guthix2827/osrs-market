@@ -1,0 +1,23 @@
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# C++
+backend/build/
+build/
+
+# Docker/runtime
+*.log
