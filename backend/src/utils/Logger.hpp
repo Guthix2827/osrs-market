@@ -6,7 +6,9 @@
 #include <iostream>
 #include <mutex>
 #include <sstream>
+#include <string>
 #include <string_view>
+#include <utility>
 
 class Logger
 {
@@ -42,15 +44,18 @@ private:
         const std::time_t time =
             std::chrono::system_clock::to_time_t(now);
 
-        std::tm tm {};
+        std::tm localTime {};
 
-        localtime_r(&time, &tm);
+        if (localtime_r(&time, &localTime) == nullptr)
+        {
+            return "unknown-time";
+        }
 
         std::ostringstream stream;
 
         stream
             << std::put_time(
-                &tm,
+                &localTime,
                 "%Y-%m-%d %H:%M:%S"
             );
 
@@ -64,7 +69,7 @@ private:
         Args&&... args
     )
     {
-        std::lock_guard lock(mutex_);
+        std::lock_guard<std::mutex> lock(mutex_);
 
         output
             << '[' << timestamp() << "] "
@@ -73,5 +78,6 @@ private:
         (output << ... << std::forward<Args>(args));
 
         output << '\n';
+        output.flush();
     }
 };
