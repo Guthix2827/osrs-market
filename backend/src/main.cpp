@@ -35,7 +35,7 @@ int main()
     Database database{databaseUrl};
 
     std::cout
-        << "Connected to PostgreSQL: "
+        << "Connected to Database: "
         << database.connection().dbname()
         << '\n';
 
@@ -43,26 +43,27 @@ int main()
         database
     };
 
-    MappingStore store{
-        "/app/data/mapping.json"
-    };
+    MappingStore store;
 
     try
     {
-        store.load();
+        const auto cachedItems =
+            itemRepository.findAllCurrent();
+
+        store.replace(cachedItems);
+
+        std::cout
+            << "Loaded "
+            << store.size()
+            << " items from Database\n";
     }
     catch (const std::exception& e)
     {
         std::cerr
-            << "Could not load mapping cache: "
+            << "Failed to load items from Database: "
             << e.what()
             << '\n';
     }
-
-    std::cout
-        << "Loaded "
-        << store.size()
-        << " cached items\n";
 
     MappingClient client;
 
@@ -134,7 +135,12 @@ int main()
             {"id", item->id},
             {"name", item->name},
             {"examine", item->examine},
-            {"icon", item->icon},
+            {
+                "icon",
+                "/icons/" +
+                    std::to_string(item->id) +
+                    ".png"
+            },
             {"members", item->members}
         };
 

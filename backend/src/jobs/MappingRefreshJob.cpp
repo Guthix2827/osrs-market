@@ -4,6 +4,7 @@
 #include "../mapping/MappingClient.hpp"
 #include "../mapping/MappingStore.hpp"
 #include "../items/ItemRepository.hpp"
+#include "../items/ItemFilter.hpp"
 
 #include <iostream>
 
@@ -32,19 +33,29 @@ void MappingRefreshJob::execute()
         const auto items =
             client_.fetchAll();
 
-        store_.replace(items);
-
         std::size_t queuedIcons = 0;
+
+        std::vector<ItemMapping> filteredItems;
+        filteredItems.reserve(items.size());
 
         for (const auto& item : items)
         {
+            if (!ItemFilter::shouldInclude(item.id))
+                continue;
+            
             itemRepository_.sync(item);
+            filteredItems.push_back(item);
 
             if (item.icon.empty())
                 continue;
 
-            if (iconDownloader_.exists(item.id))
+            if (!iconDownloader_.shouldDownload(
+                    item.id,
+                    item.icon
+                ))
+            {
                 continue;
+            }
 
             iconQueue_.push(
                 IconDownloadJob{
@@ -55,6 +66,8 @@ void MappingRefreshJob::execute()
 
             ++queuedIcons;
         }
+
+        store_.replace(filteredItems);
 
         std::cout
             << "Mapping refreshed: "

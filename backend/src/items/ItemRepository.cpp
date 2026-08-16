@@ -86,7 +86,7 @@ ItemRepository::findCurrent(
     };
 
     const auto result =
-        transaction.exec_params(
+        transaction.exec(
             R"(
                 SELECT
                     r.item_id,
@@ -103,7 +103,7 @@ ItemRepository::findCurrent(
                     ON r.id = i.current_revision_id
                 WHERE i.id = $1
             )",
-            itemId
+            pqxx::params{itemId}
         );
 
     if (result.empty())
@@ -120,6 +120,48 @@ ItemRepository::findCurrent(
     return item;
 }
 
+std::vector<ItemMapping>
+ItemRepository::findAllCurrent()
+{
+    pqxx::work transaction{
+        database_.connection()
+    };
+
+    const auto result =
+        transaction.exec(
+            R"(
+                SELECT
+                    r.item_id,
+                    r.name,
+                    r.examine,
+                    r.members,
+                    r.low_alch,
+                    r.high_alch,
+                    r.value,
+                    r.buy_limit,
+                    r.icon_filename
+                FROM items i
+                JOIN item_revisions r
+                    ON r.id = i.current_revision_id
+                ORDER BY r.item_id
+            )"
+        );
+
+    std::vector<ItemMapping> items;
+    items.reserve(result.size());
+
+    for (const auto& row : result)
+    {
+        items.push_back(
+            rowToItemMapping(row)
+        );
+    }
+
+    transaction.commit();
+
+    return items;
+}
+
 
 void ItemRepository::sync(
     const ItemMapping& item
@@ -130,17 +172,17 @@ void ItemRepository::sync(
     };
 
     // Ensure the stable item exists.
-    transaction.exec_params(
+    transaction.exec(
         R"(
             INSERT INTO items (id)
             VALUES ($1)
             ON CONFLICT (id) DO NOTHING
         )",
-        item.id
+        pqxx::params{item.id}
     );
 
     const auto currentResult =
-        transaction.exec_params(
+        transaction.exec(
             R"(
                 SELECT
                     r.item_id,
@@ -157,7 +199,7 @@ void ItemRepository::sync(
                     ON r.id = i.current_revision_id
                 WHERE i.id = $1
             )",
-            item.id
+            pqxx::params{item.id}
         );
 
     if (!currentResult.empty())
@@ -175,7 +217,7 @@ void ItemRepository::sync(
     }
 
     const auto revisionResult =
-        transaction.exec_params(
+        transaction.exec(
             R"(
                 INSERT INTO item_revisions
                 (
@@ -203,31 +245,35 @@ void ItemRepository::sync(
                 )
                 RETURNING id
             )",
-            item.id,
-            item.name,
-            item.examine,
-            item.members,
-            item.lowAlch,
-            item.highAlch,
-            item.value,
-            item.buyLimit,
-            item.icon
+            pqxx::params{
+                item.id,
+                item.name,
+                item.examine,
+                item.members,
+                item.lowAlch,
+                item.highAlch,
+                item.value,
+                item.buyLimit,
+                item.icon
+            }
         );
 
     const auto revisionId =
         revisionResult[0][0]
             .as<std::int64_t>();
 
-    transaction.exec_params(
+    transaction.exec(
         R"(
             UPDATE items
             SET
                 current_revision_id = $1,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = $2
-        )",
-        revisionId,
-        item.id
+        )",        
+        pqxx::params{
+            revisionId,
+            item.id
+        }
     );
 
     transaction.commit();
