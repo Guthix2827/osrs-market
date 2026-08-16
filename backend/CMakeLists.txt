@@ -55,9 +55,14 @@ add_executable(
     src/icons/IconDownloader.cpp
 
     src/jobs/MappingRefreshJob.cpp
+    src/jobs/FiveMinutePriceRefreshJob.cpp
 
     src/items/ItemFilter.cpp
     src/items/ItemRepository.cpp
+    
+    src/prices/FiveMinutePriceClient.cpp
+    src/prices/LatestPriceStore.cpp
+    src/prices/PriceRepository.cpp
 )
 
 target_include_directories(
