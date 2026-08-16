@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <vector>
 
 class Database;
 
@@ -18,6 +19,9 @@ public:
     std::optional<ItemMapping> findCurrent(
         std::int32_t itemId
     );
+
+    [[nodiscard]]
+    std::vector<ItemMapping> findAllCurrent();
 
 private:
     Database& database_;

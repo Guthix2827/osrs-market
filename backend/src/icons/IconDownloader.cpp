@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
+#include <chrono>
 
 namespace
 {
@@ -92,6 +93,21 @@ bool IconDownloader::download(
         return false;
     }
 
+    if (response.status_code == 404)
+    {
+        markMissing(
+            job.itemId,
+            job.filename
+        );
+
+        std::cerr
+            << "Icon not found for item "
+            << job.itemId
+            << " (will retry later)\n";
+
+        return false;
+    }
+
     if (response.status_code != 200)
     {
         std::cerr
@@ -137,6 +153,8 @@ bool IconDownloader::download(
         finalPath
     );
 
+    clearMissing(job.itemId);
+
     std::cout
         << "Downloaded icon "
         << job.itemId
@@ -145,4 +163,83 @@ bool IconDownloader::download(
         << '\n';
 
     return true;
+}
+
+std::filesystem::path IconDownloader::missingPathFor(
+    std::int32_t itemId
+) const
+{
+    return iconDirectory_ /
+        (std::to_string(itemId) + ".missing");
+}
+
+
+void IconDownloader::markMissing(
+    std::int32_t itemId,
+    const std::string& filename
+) const
+{
+    std::ofstream file(
+        missingPathFor(itemId)
+    );
+
+    if (file)
+        file << filename;
+}
+
+
+void IconDownloader::clearMissing(
+    std::int32_t itemId
+) const
+{
+    std::error_code error;
+
+    std::filesystem::remove(
+        missingPathFor(itemId),
+        error
+    );
+}
+
+
+bool IconDownloader::shouldDownload(
+    std::int32_t itemId,
+    const std::string& filename
+) const
+{
+    if (exists(itemId))
+        return false;
+
+    const auto missingPath =
+        missingPathFor(itemId);
+
+    if (!std::filesystem::exists(missingPath))
+        return true;
+
+    // If the upstream filename changed, try again immediately.
+    {
+        std::ifstream file(missingPath);
+
+        std::string missingFilename;
+
+        std::getline(
+            file,
+            missingFilename
+        );
+
+        if (missingFilename != filename)
+            return true;
+    }
+
+    const auto lastAttempt =
+        std::filesystem::last_write_time(
+            missingPath
+        );
+
+    const auto now =
+        std::filesystem::file_time_type::clock::now();
+
+    const auto retryAfter =
+        std::chrono::hours{24};
+
+    return now - lastAttempt >= retryAfter;
 }

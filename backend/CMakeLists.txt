@@ -55,6 +55,8 @@ add_executable(
     src/icons/IconDownloader.cpp
 
     src/jobs/MappingRefreshJob.cpp
+
+    src/items/ItemFilter.cpp
     src/items/ItemRepository.cpp
 )
 

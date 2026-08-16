@@ -3,7 +3,6 @@
 #include "ItemMapping.hpp"
 
 #include <cstdint>
-#include <filesystem>
 #include <optional>
 #include <shared_mutex>
 #include <unordered_map>
@@ -12,10 +11,6 @@
 class MappingStore
 {
 public:
-    explicit MappingStore(std::filesystem::path filePath);
-
-    void load();
-
     void replace(
         const std::vector<ItemMapping>& items
     );
@@ -32,12 +27,6 @@ public:
     std::size_t size() const;
 
 private:
-    void persist(
-        const std::vector<ItemMapping>& items
-    ) const;
-
-    std::filesystem::path filePath_;
-
     mutable std::shared_mutex mutex_;
 
     std::unordered_map<
