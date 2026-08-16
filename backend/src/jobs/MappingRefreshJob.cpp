@@ -3,6 +3,7 @@
 #include "../icons/IconDownloader.hpp"
 #include "../mapping/MappingClient.hpp"
 #include "../mapping/MappingStore.hpp"
+#include "../items/ItemRepository.hpp"
 
 #include <iostream>
 
@@ -10,12 +11,14 @@ MappingRefreshJob::MappingRefreshJob(
     MappingClient& client,
     MappingStore& store,
     JobQueue<IconDownloadJob>& iconQueue,
-    IconDownloader& iconDownloader
+    IconDownloader& iconDownloader,
+    ItemRepository& itemRepository
 )
     : client_(client),
       store_(store),
       iconQueue_(iconQueue),
-      iconDownloader_(iconDownloader)
+      iconDownloader_(iconDownloader),
+      itemRepository_(itemRepository)
 {
 }
 
@@ -35,6 +38,8 @@ void MappingRefreshJob::execute()
 
         for (const auto& item : items)
         {
+            itemRepository_.sync(item);
+
             if (item.icon.empty())
                 continue;
 

@@ -6,6 +6,7 @@
 class MappingClient;
 class MappingStore;
 class IconDownloader;
+class ItemRepository;
 
 class MappingRefreshJob
 {
@@ -14,7 +15,8 @@ public:
         MappingClient& client,
         MappingStore& store,
         JobQueue<IconDownloadJob>& iconQueue,
-        IconDownloader& iconDownloader
+        IconDownloader& iconDownloader,
+        ItemRepository& itemRepository
     );
 
     void execute();
@@ -25,4 +27,5 @@ private:
 
     JobQueue<IconDownloadJob>& iconQueue_;
     IconDownloader& iconDownloader_;
+    ItemRepository& itemRepository_;
 };

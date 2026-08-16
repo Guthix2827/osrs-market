@@ -29,6 +29,9 @@ FetchContent_Declare(
     GIT_TAG v1.2.1
 )
 
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PQXX REQUIRED libpqxx)
+
 set(CROW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CROW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -42,6 +45,8 @@ FetchContent_MakeAvailable(
 add_executable(
     osrs-market-backend
 
+    src/database/Database.cpp
+
     src/main.cpp
 
     src/mapping/MappingClient.cpp
@@ -50,6 +55,19 @@ add_executable(
     src/icons/IconDownloader.cpp
 
     src/jobs/MappingRefreshJob.cpp
+    src/items/ItemRepository.cpp
+)
+
+target_include_directories(
+    osrs-market-backend
+    PRIVATE
+        ${PQXX_INCLUDE_DIRS}
+)
+
+target_link_directories(
+    osrs-market-backend
+    PRIVATE
+        ${PQXX_LIBRARY_DIRS}
 )
 
 target_link_libraries(
@@ -58,4 +76,5 @@ target_link_libraries(
         cpr::cpr
         nlohmann_json::nlohmann_json
         Crow::Crow
+        ${PQXX_LIBRARIES}
 )
