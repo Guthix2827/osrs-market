@@ -13,7 +13,7 @@ constexpr auto MAPPING_URL =
     "https://prices.runescape.wiki/api/v2/osrs/mapping";
 
 constexpr auto USER_AGENT =
-    "osrs-market/0.1 (github.com/YOUR_USERNAME/osrs-market)";
+    "osrs-market/0.1 (github.com/Guthix2827/osrs-market)";
 }
 
 std::vector<ItemMapping> MappingClient::fetchAll() const
@@ -32,6 +32,7 @@ std::vector<ItemMapping> MappingClient::fetchAll() const
             {"User-Agent", USER_AGENT},
             {"Accept", "application/json"}
         },
+        cpr::ConnectTimeout{5000},
         cpr::Timeout{15000}
     );
 

@@ -1,3 +1,4 @@
+#include "utils/Logger.hpp"
 #include "jobs/MappingRefreshJob.hpp"
 #include "mapping/MappingClient.hpp"
 #include "mapping/MappingStore.hpp"
@@ -26,7 +27,7 @@
 
 int main()
 {
-    //database connection
+    // Database connection
     const char* databaseUrl =
         std::getenv("DATABASE_URL");
 
@@ -48,41 +49,51 @@ int main()
         priceDatabase
     };
 
-    LatestPriceStore latestPriceStore;
 
-    // hydrate prices
+    // In-memory stores.
+    LatestPriceStore latestPriceStore;
+    MappingStore mappingStore;
+
+
+    // Hydrate latest prices from PostgreSQL.
     {
         const auto persistedPrices =
             priceRepository.findLatestPerItem();
 
         for (const auto& point : persistedPrices)
             latestPriceStore.updateIfChanged(point);
+
+        Logger::info(
+            "Loaded ",
+            latestPriceStore.size(),
+            " latest price states from Database"
+        );
     }
 
-    MappingStore store;
 
     // hydrate items
     {
         const auto cachedItems =
             itemRepository.findAllCurrent();
 
-        store.replace(cachedItems);
+        mappingStore.replace(
+            cachedItems
+        );
+
+        Logger::info(
+            "Loaded ",
+            mappingStore.size(),
+            " items from Database"
+        );
     }
 
 
-    // Create clients/jobs after hydration.
-
+    // Clients.
     FiveMinutePriceClient priceClient;
-
-    FiveMinutePriceRefreshJob priceRefreshJob{
-        priceClient,
-        latestPriceStore,
-        priceRepository
-    };
-
     MappingClient mappingClient;
 
-    //icon job
+
+    // Icon subsystem.
     JobQueue<IconDownloadJob> iconQueue;
     IconDownloader iconDownloader{
         "/app/data/icons"
@@ -99,16 +110,31 @@ int main()
     };
     iconThread.detach();
 
-    //
+
+    // Jobs
     MappingRefreshJob mappingJob{
         mappingClient,
-        store,
+        mappingStore,
         iconQueue,
         iconDownloader,
         itemRepository
     };
 
-    // Run upstream refresh outside the HTTP thread.
+    FiveMinutePriceRefreshJob priceRefreshJob{
+        priceClient,
+        latestPriceStore,
+        priceRepository
+    };
+
+
+    // Perform the initial mapping refresh synchronously.
+    //
+    // This completes before the recurring price worker starts,
+    // avoiding simultaneous upstream requests during startup.
+    mappingJob.execute();
+
+
+    // Start recurring 5-minute market collection.
     std::thread priceRefreshThread{
         [&priceRefreshJob]
         {
@@ -124,14 +150,7 @@ int main()
 
     priceRefreshThread.detach();
 
-    std::thread mappingRefreshThread{
-        [&mappingJob]
-        {
-            mappingJob.execute();
-        }
-    };
-
-    mappingRefreshThread.detach();
+    Logger::info("Price refresh worker launched");
 
 
     //init crow
@@ -147,9 +166,9 @@ int main()
     });
 
     CROW_ROUTE(app, "/api/items/<int>")
-    ([&store](int id)
+    ([&mappingStore](int id)
     {
-        const auto item = store.find(id);
+        const auto item = mappingStore.find(id);
 
         if (!item)
         {
