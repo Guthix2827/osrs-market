@@ -403,7 +403,6 @@ a {
     background: transparent;
     color: #aaa69d;
 
-    font-size: 13px;
     cursor: pointer;
 }
 
@@ -579,7 +578,7 @@ a {
     gap: 6px;
 
     color: #bbb5aa;
-    font-size: 13px;
+    margin-bottom: 7px;
 }
 
 .stat-info {
@@ -963,12 +962,10 @@ a {
 
 .overview-row span {
     color: #c5c0b8;
-    font-size: 14px;
 }
 
 .overview-row strong {
     color: #e1dbd2;
-    font-size: 14px;
     font-weight: 400;
 }
 
@@ -1009,7 +1006,6 @@ a {
 
 .detail span {
     color: #c8c2b8;
-    font-size: 13px;
 }
 
 .detail strong {
