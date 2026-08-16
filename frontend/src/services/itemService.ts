@@ -1,7 +1,12 @@
-import type { Item } from "../types/item";
-import { dragonAxe } from "../mocks/items";
+import type {Item, PricePoint} from "../types/item";
 
-export async function getItem(id: number): Promise<Item> {
+import { dragonAxe } from "../mocks/items";
+import {
+    mockHistory7d,
+    mockHistory24h,
+} from "../mocks/priceHistory";
+
+export async function getItemMock(id: number): Promise<Item> {
     await new Promise((resolve) => setTimeout(resolve, 100));
 
     if (id !== 6739) {
@@ -11,14 +16,29 @@ export async function getItem(id: number): Promise<Item> {
     return dragonAxe;
 }
 
-/*
-export async function getItem(id: number): Promise<Item> {
-    const response = await fetch(`/api/items/${id}`);
+async function getPriceHistoryMock(
+    id: number,
+    range: string,
+): Promise<PricePoint[]> {
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-    if (!response.ok) {
-        throw new Error("Failed to load item");
+    if (id !== 6739) {
+        throw new Error("Item not found");
     }
 
-    return response.json();
+    switch (range) {
+        case "24H":
+            return mockHistory24h;
+
+        case "7D":
+            return mockHistory7d;
+
+        default:
+            return mockHistory7d;
+    }
 }
- */
+
+export const itemService = {
+    getItemMock,
+    getPriceHistoryMock,
+};

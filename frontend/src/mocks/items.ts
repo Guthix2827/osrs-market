@@ -6,7 +6,7 @@ export const dragonAxe: Item = {
     examine: "A very powerful axe.",
     members: true,
 
-    icon: "/items/6739.png",
+    icon: "https://oldschool.runescape.wiki/images/Dragon_axe.png",
 
     lowAlch: 22000,
     highAlch: 33000,
