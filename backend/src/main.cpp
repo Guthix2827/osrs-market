@@ -14,9 +14,12 @@
 #include <thread>
 #include <fstream>
 #include <iterator>
+#include <iostream>
 
 int main()
 {
+    std::cout << "OSRS Market Backend - development build test\n";
+
     MappingStore store{
         "/app/data/mapping.json"
     };

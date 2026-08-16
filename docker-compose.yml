@@ -11,10 +11,21 @@ services:
   backend:
     build:
       context: ./backend
+      dockerfile: Dockerfile.dev
+    working_dir: /app
     ports:
       - "8081:8080"
     volumes:
+      - ./backend:/app
+      - backend-build:/app/build
       - osrs-market-data:/app/data
+    command: >
+      sh -c "
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug &&
+        cmake --build build &&
+        ./build/osrs-market-backend
+      "
 
 volumes:
+  backend-build:
   osrs-market-data:
