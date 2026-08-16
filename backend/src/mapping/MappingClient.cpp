@@ -1,9 +1,11 @@
 #include "MappingClient.hpp"
+#include "../utils/Logger.hpp"
 
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
 
 #include <stdexcept>
+#include <chrono>
 
 namespace
 {
@@ -11,11 +13,19 @@ constexpr auto MAPPING_URL =
     "https://prices.runescape.wiki/api/v2/osrs/mapping";
 
 constexpr auto USER_AGENT =
-    "osrs-market-alpha/0.1";
+    "osrs-market/0.1 (github.com/YOUR_USERNAME/osrs-market)";
 }
 
 std::vector<ItemMapping> MappingClient::fetchAll() const
 {
+    using Clock = std::chrono::steady_clock;
+
+    const auto requestStartedAt = Clock::now();
+
+    Logger::info(
+        "Requesting mapping from RuneScape Wiki..."
+    );
+
     const auto response = cpr::Get(
         cpr::Url{MAPPING_URL},
         cpr::Header{
@@ -41,7 +51,35 @@ std::vector<ItemMapping> MappingClient::fetchAll() const
         );
     }
 
-    const auto json = nlohmann::json::parse(response.text);
+
+    const auto requestFinishedAt = Clock::now();
+
+    Logger::info(
+        "Mapping HTTP response: status=",
+        response.status_code,
+        " bytes=",
+        response.text.size(),
+        " time=",
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            requestFinishedAt - requestStartedAt
+        ).count(),
+        "ms"
+    );
+
+    const auto parseStartedAt = Clock::now();
+
+    const auto json =
+        nlohmann::json::parse(response.text);
+
+    const auto parseFinishedAt = Clock::now();
+
+    Logger::info(
+        "Mapping JSON parsed in ",
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            parseFinishedAt - parseStartedAt
+        ).count(),
+        "ms"
+    );
 
     std::vector<ItemMapping> items;
     items.reserve(json.size());
