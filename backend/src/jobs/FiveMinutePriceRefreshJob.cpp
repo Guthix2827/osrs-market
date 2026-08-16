@@ -1,5 +1,6 @@
 #include "FiveMinutePriceRefreshJob.hpp"
 
+#include "../utils/Logger.hpp"
 #include "../items/ItemFilter.hpp"
 #include "../prices/FiveMinutePriceClient.hpp"
 #include "../prices/LatestPriceStore.hpp"
@@ -31,6 +32,10 @@ void FiveMinutePriceRefreshJob::execute()
         std::size_t changed = 0;
         std::size_t inserted = 0;
 
+        Logger::info(
+            "Fetching latest 5m prices..."
+        );
+
         for (const auto& point : points)
         {
             if (!ItemFilter::shouldInclude(
@@ -55,19 +60,19 @@ void FiveMinutePriceRefreshJob::execute()
                 ++inserted;
         }
 
-        std::cout
-            << "5m refresh:"
-            << " fetched=" << points.size()
-            << " included=" << included
-            << " changed=" << changed
-            << " inserted=" << inserted
-            << '\n';
+        Logger::info(
+            "5m price refresh complete: ",
+            "fetched=", points.size(),
+            " included=", included,
+            " changed=", changed,
+            " inserted=", inserted
+        );
     }
     catch (const std::exception& e)
     {
-        std::cerr
-            << "5m refresh failed: "
-            << e.what()
-            << '\n';
+        Logger::error(
+            "5m price refresh failed: ",
+            e.what()
+        );
     }
 }

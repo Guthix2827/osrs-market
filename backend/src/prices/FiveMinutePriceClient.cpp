@@ -16,7 +16,7 @@ constexpr auto FIVE_MINUTE_URL =
     "https://prices.runescape.wiki/api/v2/osrs/5m";
 
 constexpr auto USER_AGENT =
-    "osrs-market-alpha/0.1";
+    "osrs-market/0.1 (github.com/Guthix2827/osrs-market)";
 
 std::optional<std::int64_t> getOptionalInt64(
     const nlohmann::json& object,

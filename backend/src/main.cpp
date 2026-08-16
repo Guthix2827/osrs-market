@@ -117,7 +117,7 @@ int main()
             while (true)
             {
                 priceRefreshJob.execute();
-                std::this_thread::sleep_for(60s);
+                std::this_thread::sleep_for(5min);
             }
         }
     };
