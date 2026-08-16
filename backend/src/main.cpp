@@ -5,6 +5,8 @@
 #include "jobs/IconDownloadJob.hpp"
 #include "jobs/IconDownloadWorker.hpp"
 #include "jobs/JobQueue.hpp"
+#include "database/Database.hpp"
+#include "items/ItemRepository.hpp"
 
 #include <crow.h>
 #include <nlohmann/json.hpp>
@@ -15,10 +17,31 @@
 #include <fstream>
 #include <iterator>
 #include <iostream>
+#include <cstdlib>
 
 int main()
 {
-    std::cout << "OSRS Market Backend - development build test\n";
+    //database connection
+    const char* databaseUrl =
+        std::getenv("DATABASE_URL");
+
+    if (!databaseUrl)
+    {
+        throw std::runtime_error(
+            "DATABASE_URL is not set"
+        );
+    }
+
+    Database database{databaseUrl};
+
+    std::cout
+        << "Connected to PostgreSQL: "
+        << database.connection().dbname()
+        << '\n';
+
+    ItemRepository itemRepository{
+        database
+    };
 
     MappingStore store{
         "/app/data/mapping.json"
@@ -42,7 +65,6 @@ int main()
         << " cached items\n";
 
     MappingClient client;
-
 
     JobQueue<IconDownloadJob> iconQueue;
 
@@ -69,7 +91,8 @@ int main()
         client,
         store,
         iconQueue,
-        iconDownloader
+        iconDownloader,
+        itemRepository
     };
 
     // Run upstream refresh outside the HTTP thread.

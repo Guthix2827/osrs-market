@@ -25,7 +25,25 @@ services:
         cmake --build build &&
         ./build/osrs-market-backend
       "
+    environment:
+      DATABASE_URL: postgres://osrs_market:osrs_market@postgres:5432/osrs_market
+
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: osrs_market
+      POSTGRES_USER: osrs_market
+      POSTGRES_PASSWORD: osrs_market
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./backend/sql:/sql:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U osrs_market -d osrs_market" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   backend-build:
   osrs-market-data:
+  postgres-data:
