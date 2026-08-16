@@ -4,9 +4,14 @@
 #include "icons/IconDownloader.hpp"
 #include "jobs/IconDownloadJob.hpp"
 #include "jobs/IconDownloadWorker.hpp"
+#include "jobs/FiveMinutePriceRefreshJob.hpp"
 #include "jobs/JobQueue.hpp"
 #include "database/Database.hpp"
 #include "items/ItemRepository.hpp"
+#include "items/ItemFilter.hpp"
+#include "prices/FiveMinutePriceClient.hpp"
+#include "prices/LatestPriceStore.hpp"
+#include "prices/PriceRepository.hpp"
 
 #include <crow.h>
 #include <nlohmann/json.hpp>
@@ -32,64 +37,71 @@ int main()
         );
     }
 
-    Database database{databaseUrl};
-
-    std::cout
-        << "Connected to Database: "
-        << database.connection().dbname()
-        << '\n';
+    Database itemDatabase{databaseUrl};
+    Database priceDatabase{databaseUrl};
 
     ItemRepository itemRepository{
-        database
+        itemDatabase
     };
+
+    PriceRepository priceRepository{
+        priceDatabase
+    };
+
+    LatestPriceStore latestPriceStore;
+
+    // hydrate prices
+    {
+        const auto persistedPrices =
+            priceRepository.findLatestPerItem();
+
+        for (const auto& point : persistedPrices)
+            latestPriceStore.updateIfChanged(point);
+    }
 
     MappingStore store;
 
-    try
+    // hydrate items
     {
         const auto cachedItems =
             itemRepository.findAllCurrent();
 
         store.replace(cachedItems);
-
-        std::cout
-            << "Loaded "
-            << store.size()
-            << " items from Database\n";
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr
-            << "Failed to load items from Database: "
-            << e.what()
-            << '\n';
     }
 
-    MappingClient client;
 
+    // Create clients/jobs after hydration.
+
+    FiveMinutePriceClient priceClient;
+
+    FiveMinutePriceRefreshJob priceRefreshJob{
+        priceClient,
+        latestPriceStore,
+        priceRepository
+    };
+
+    MappingClient mappingClient;
+
+    //icon job
     JobQueue<IconDownloadJob> iconQueue;
-
     IconDownloader iconDownloader{
         "/app/data/icons"
     };
-
     IconDownloadWorker iconWorker{
         iconQueue,
         iconDownloader
     };
-
     std::thread iconThread{
         [&iconWorker]
         {
             iconWorker.run();
         }
     };
-
     iconThread.detach();
 
-
+    //
     MappingRefreshJob mappingJob{
-        client,
+        mappingClient,
         store,
         iconQueue,
         iconDownloader,
@@ -97,15 +109,32 @@ int main()
     };
 
     // Run upstream refresh outside the HTTP thread.
-    std::thread refreshThread{
+    std::thread priceRefreshThread{
+        [&priceRefreshJob]
+        {
+            using namespace std::chrono_literals;
+
+            while (true)
+            {
+                priceRefreshJob.execute();
+                std::this_thread::sleep_for(60s);
+            }
+        }
+    };
+
+    priceRefreshThread.detach();
+
+    std::thread mappingRefreshThread{
         [&mappingJob]
         {
             mappingJob.execute();
         }
     };
 
-    refreshThread.detach();
+    mappingRefreshThread.detach();
 
+
+    //init crow
     crow::SimpleApp app;
 
     CROW_ROUTE(app, "/api/health")
