@@ -6,6 +6,11 @@ void ItemActivityTracker::recordView(
 {
     std::lock_guard lock(mutex_);
 
+    Logger::info(
+        "Activity recorded for item ",
+        itemId
+    );
+
     lastViewed_[itemId] =
         Clock::now();
 }

@@ -1,16 +1,17 @@
-import type { Item, PricePoint } from '../types/item';
+import type {ItemStats, PricePoint} from '../types/item';
+import type {PriceHistoryRange} from "../services/itemService.ts";
 
 interface MarketOverviewProps {
-    item: Item;
+    stats: ItemStats;
     history: PricePoint[];
-    range: string;
+    range: PriceHistoryRange;
 }
 
 export function MarketOverview({
-                                   item,
-                                   history,
-                                   range
-                               }: MarketOverviewProps) {
+                   stats,
+                   history,
+                   range,
+               }: MarketOverviewProps) {
     const prices = history
         .flatMap((point) => [
             point.avgHighPrice,
@@ -42,12 +43,12 @@ export function MarketOverview({
             ? ((lastAverage - firstAverage) / firstAverage) * 100
             : null;
 
-    const high7d =
+    const rangeHigh =
         prices.length > 0
             ? Math.max(...prices)
             : null;
 
-    const low7d =
+    const rangeLow =
         prices.length > 0
             ? Math.min(...prices)
             : null;
@@ -114,9 +115,10 @@ export function MarketOverview({
             : null;
 
     const spreadVsAverage =
+        stats.margin !== null &&
         typicalSpread !== null &&
         typicalSpread !== 0
-            ? ((item.stats.margin - typicalSpread) /
+            ? ((stats.margin - typicalSpread) /
                 typicalSpread) *
             100
             : null;
@@ -154,8 +156,8 @@ export function MarketOverview({
             <OverviewRow
                 label={`${range.toLowerCase()} high`}
                 value={
-                    high7d !== null
-                        ? `${formatGp(high7d)} gp`
+                    rangeHigh !== null
+                        ? `${formatGp(rangeHigh)} gp`
                         : '-'
                 }
             />
@@ -163,8 +165,8 @@ export function MarketOverview({
             <OverviewRow
                 label={`${range.toLowerCase()} low`}
                 value={
-                    low7d !== null
-                        ? `${formatGp(low7d)} gp`
+                    rangeLow !== null
+                        ? `${formatGp(rangeLow)} gp`
                         : '-'
                 }
             />

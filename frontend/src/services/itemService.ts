@@ -1,14 +1,36 @@
-import type {Item, PricePoint} from "../types/item";
+import type {ItemMetadata, ItemPrice, ItemStats, PricePoint} from "../types/item";
 
-import { dragonAxe } from "../mocks/items";
-import {
-    mockHistory7d,
-    mockHistory24h,
-} from "../mocks/priceHistory";
+import {dragonAxe, dragonAxePrice, dragonAxeStats} from "../mocks/items";
 
-export async function getItemMock(id: number): Promise<Item> {
-    await new Promise((resolve) => setTimeout(resolve, 100));
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL ?? "http://localhost:8081";
 
+export const PRICE_HISTORY_RANGES = [
+    "24H",
+    "7D",
+    "30D",
+    "1Y",
+] as const;
+
+export type PriceHistoryRange =
+    typeof PRICE_HISTORY_RANGES[number];
+
+interface PriceHistoryResponse {
+    itemId: number;
+    range: string;
+    data: PricePoint[];
+}
+
+
+/**
+ * Temporary.
+ *
+ * Item metadata is still mocked until the backend API
+ * provides everything required by the frontend Item type.
+ */
+export async function getItemMock(
+    id: number,
+): Promise<ItemMetadata> {
     if (id !== 6739) {
         throw new Error("Item not found");
     }
@@ -16,29 +38,70 @@ export async function getItemMock(id: number): Promise<Item> {
     return dragonAxe;
 }
 
-async function getPriceHistoryMock(
+export async function getPriceMock(
     id: number,
-    range: string,
-): Promise<PricePoint[]> {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
+): Promise<ItemPrice> {
     if (id !== 6739) {
         throw new Error("Item not found");
     }
 
-    switch (range) {
-        case "24H":
-            return mockHistory24h;
+    return dragonAxePrice;
+}
 
-        case "7D":
-            return mockHistory7d;
-
-        default:
-            return mockHistory7d;
+export async function getStatsMock(
+    id: number,
+): Promise<ItemStats> {
+    if (id !== 6739) {
+        throw new Error("Item not found");
     }
+
+    return dragonAxeStats;
+}
+
+export async function getItem(
+    id: number,
+): Promise<ItemMetadata> {
+    const response = await fetch(
+        `${API_BASE_URL}/api/items/${id}`,
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch item (${response.status})`,
+        );
+    }
+
+    return await response.json() as ItemMetadata;
+}
+
+
+export async function getPriceHistory(
+    id: number,
+    range: PriceHistoryRange,
+): Promise<PricePoint[]> {
+    const backendRange =
+        range === "24H"
+            ? "24h"
+            : "7d";
+
+    const response = await fetch(
+        `${API_BASE_URL}/api/items/${id}/history?range=${backendRange}`,
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to fetch price history (${response.status})`,
+        );
+    }
+
+    const json =
+        await response.json() as PriceHistoryResponse;
+
+    return json.data;
 }
 
 export const itemService = {
+    getItem,
     getItemMock,
-    getPriceHistoryMock,
+    getPriceHistory,
 };

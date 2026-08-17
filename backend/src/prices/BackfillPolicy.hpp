@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <string_view>
 
 class PriceRepository;
 
@@ -15,7 +16,9 @@ public:
     [[nodiscard]]
     bool needsLookback(
         std::int32_t itemId,
-        std::chrono::seconds lookback
+        std::string_view lookback,
+        std::chrono::seconds coverage,
+        std::chrono::seconds refreshAfter
     );
 
 private:

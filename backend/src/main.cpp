@@ -24,6 +24,7 @@
 #include "prices/ItemActivityTracker.hpp"
 
 #include <crow.h>
+#include <crow/middlewares/cors.h>
 #include <nlohmann/json.hpp>
 
 #include <chrono>
@@ -254,7 +255,14 @@ int main()
 
 
     //init crow
-    crow::SimpleApp app;
+    crow::App<crow::CORSHandler> app;
+
+    auto& cors =
+        app.get_middleware<crow::CORSHandler>();
+
+    cors
+        .global()
+        .origin("*");
 
     CROW_ROUTE(app, "/api/health")
     ([] {
@@ -412,6 +420,8 @@ int main()
                 R"({"error":"Unsupported range"})"
             };
         }
+
+        activityTracker.recordView(itemId);
 
         const auto now =
             std::chrono::system_clock::now();

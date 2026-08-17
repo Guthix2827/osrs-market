@@ -1,72 +1,159 @@
 import {useEffect, useMemo, useState} from 'react';
 import './ItemPage.css';
-import type {PricePoint} from "../types/item.ts";
-import {itemService} from "../services/itemService";
+import type {ItemMetadata, ItemPrice, ItemStats, PricePoint} from "../types/item.ts";
+import {itemService, PRICE_HISTORY_RANGES, type PriceHistoryRange} from "../services/itemService";
 import {PriceHistoryChart, VolumeChart} from "../components/PriceHistoryChart.tsx";
 import {MarketOverview} from "../components/MarketOverview.tsx";
-
-interface ItemPrice {
-    high: number;
-    highTime: number;
-    low: number;
-    lowTime: number;
-}
-
-interface ItemStats {
-    margin: number;
-    potentialProfit: number;
-    roi: number;
-    dailyVolume: number;
-}
-
-interface Item {
-    id: number;
-    name: string;
-    examine: string;
-    members: boolean;
-    icon: string;
-    lowAlch: number;
-    highAlch: number;
-    buyLimit: number;
-    price: ItemPrice;
-    stats: ItemStats;
-}
+import { useParams } from "react-router-dom";
+import {normalizePriceHistory, normalizeVolumeHistory} from "../utils/priceHistory.ts";
 
 function formatGp(value: number) {
     return new Intl.NumberFormat('en-US').format(value);
 }
 
 export default function ItemPage() {
-    const [item, setItem] = useState<Item | null>(null);
-    const [history, setHistory] = useState<PricePoint[]>([]);
-    const [range, setRange] = useState("24H");
+    const { id } = useParams();
 
-    useEffect(() => {
-        itemService.getItemMock(6739).then(setItem);
-    }, []);
+    const itemId = Number(id);
 
+    const [metaItem, setMetaItem] =
+        useState<ItemMetadata | null>(null);
+
+    const [history, setHistory] =
+        useState<PricePoint[]>([]);
+
+    const [range, setRange] =
+        useState<PriceHistoryRange>("24H");
+
+
+    // Load item metadata.
     useEffect(() => {
+        if (!Number.isInteger(itemId)) {
+            return;
+        }
+
+        itemService
+            .getItem(itemId)
+            .then(setMetaItem)
+            .catch(console.error);
+    }, [itemId]);
+
+
+    // Load price history.
+    useEffect(() => {
+        if (!Number.isInteger(itemId)) {
+            return;
+        }
+
         const loadHistory = async () => {
-            const data =
-                await itemService.getPriceHistoryMock(
-                    6739,
-                    range,
+            try {
+                const data =
+                    await itemService.getPriceHistory(
+                        itemId,
+                        range,
+                    );
+
+                setHistory(data);
+            } catch (error) {
+                console.error(
+                    "Failed to load price history",
+                    error,
                 );
-
-            console.log([range, data]);
-
-            setHistory(data);
+            }
         };
 
         loadHistory();
 
-        const interval = window.setInterval(
-            loadHistory,
-            60_000,
-        );
+        const interval =
+            window.setInterval(
+                loadHistory,
+                60_000,
+            );
 
-        return () => window.clearInterval(interval);
-    }, [range]);
+        return () =>
+            window.clearInterval(interval);
+    }, [itemId, range]);
+
+    const price = useMemo<ItemPrice>(() => {
+        let high: number | null = null;
+        let low: number | null = null;
+        let highTime: number | null = null;
+        let lowTime: number | null = null;
+
+        for (let i = history.length - 1; i >= 0; i--) {
+            const point = history[i];
+
+            if (
+                high === null &&
+                point.avgHighPrice !== null
+            ) {
+                high = point.avgHighPrice;
+                highTime = point.timestamp;
+            }
+
+            if (
+                low === null &&
+                point.avgLowPrice !== null
+            ) {
+                low = point.avgLowPrice;
+                lowTime = point.timestamp;
+            }
+
+            if (high !== null && low !== null) {
+                break;
+            }
+        }
+
+        return {
+            high,
+            highTime,
+            low,
+            lowTime,
+        };
+    }, [history]);
+
+    const stats = useMemo<ItemStats>(() => {
+        const margin =
+            price.high !== null &&
+            price.low !== null
+                ? price.high - price.low
+                : null;
+
+        const roi =
+            margin !== null &&
+            price.low !== null &&
+            price.low > 0
+                ? (margin / price.low) * 100
+                : null;
+
+        const potentialProfit =
+            margin !== null &&
+            metaItem?.buyLimit !== null &&
+            metaItem?.buyLimit !== undefined
+                ? margin * metaItem.buyLimit
+                : null;
+
+        const dailyVolume =
+            history.reduce(
+                (sum, point) =>
+                    sum +
+                    point.highPriceVolume +
+                    point.lowPriceVolume,
+                0,
+            );
+
+        return {
+            margin,
+            roi,
+            potentialProfit,
+            dailyVolume,
+        };
+    }, [
+        history,
+        metaItem?.buyLimit,
+        price.high,
+        price.low,
+    ]);
 
     const tradeDistribution = useMemo(() => {
         const bought = history.reduce(
@@ -100,8 +187,30 @@ export default function ItemPage() {
         };
     }, [history]);
 
-    if (!item) {
-        return <div className="market-loading">Loading item...</div>;
+    const chartHistory = useMemo(
+        () =>
+            normalizePriceHistory(
+                history,
+                range,
+            ),
+        [history, range],
+    );
+
+    const volumeHistory = useMemo(
+        () =>
+            normalizeVolumeHistory(
+                history,
+                range,
+            ),
+        [history, range],
+    );
+
+    if (!metaItem) {
+        return (
+            <div className="market-loading">
+                Loading item...
+            </div>
+        );
     }
 
     const {
@@ -148,19 +257,22 @@ export default function ItemPage() {
                 <section className="item-hero">
                     <div className="item-identity">
                         <div className="item-icon-frame">
-                            <img src={item.icon} alt={item.name}/>
+                            <img
+                                src={`${import.meta.env.VITE_API_URL}${metaItem.icon}`}
+                                alt={metaItem.name}
+                            />
                         </div>
 
                         <div className="item-info">
-                            <h1>{item.name}</h1>
+                            <h1>{metaItem.name}</h1>
 
                             <p className="item-examine">
-                                {item.examine}
+                                {metaItem.examine}
                             </p>
 
                             <div className="item-meta">
                                 <span className="item-id">
-                                    Item ID: {item.id}
+                                    Item ID: {metaItem.id}
                                 </span>
                             </div>
                         </div>
@@ -172,30 +284,34 @@ export default function ItemPage() {
         </span>
 
                         <div className="price-value">
-                            {formatGp(item.price.high)}
+                            {price.high !== null
+                                ? formatGp(price.high)
+                                : "—"}
                             <span>gp</span>
                         </div>
 
                         <span className="price-updated">
-            <i className="dot green"/>
-            Updated 12s ago
-        </span>
+                            <i className="dot green"/>
+                            Updated 12s ago
+                        </span>
                     </div>
 
                     <div className="price-block price-sell-block">
-        <span className="price-label price-sell">
-            Instant sell
-        </span>
+                        <span className="price-label price-sell">
+                            Instant sell
+                        </span>
 
                         <div className="price-value">
-                            {formatGp(item.price.low)}
+                            {price.low !== null
+                                ? formatGp(price.low)
+                                : "—"}
                             <span>gp</span>
                         </div>
 
                         <span className="price-updated">
-            <i className="dot red"/>
-            Updated 18s ago
-        </span>
+                            <i className="dot red"/>
+                            Updated 18s ago
+                        </span>
                     </div>
 
                     <div className="hero-actions">
@@ -218,25 +334,53 @@ export default function ItemPage() {
                         <div className="stats-strip">
                             <Stat
                                 label="Margin"
-                                value={`${formatGp(item.stats.margin)} gp`}
-                                positive
+                                value={
+                                    stats.margin !== null
+                                        ? `${formatGp(stats.margin)} gp`
+                                        : "—"
+                                }
+                                positive={
+                                    stats.margin !== null &&
+                                    stats.margin > 0
+                                }
                             />
+
                             <Stat
                                 label="ROI"
                                 tooltip="Return of Investment"
-                                value={`${item.stats.roi.toFixed(2)}%`}
-                                positive
+                                value={
+                                    stats.roi !== null
+                                        ? `${stats.roi.toFixed(2)}%`
+                                        : "—"
+                                }
+                                positive={
+                                    stats.roi !== null &&
+                                    stats.roi > 0
+                                }
                             />
+
                             <Stat
                                 label="Limit profit"
-                                value={`${formatGp(
-                                    item.stats.potentialProfit,
-                                )} gp`}
-                                positive
+                                value={
+                                    stats.potentialProfit !== null
+                                        ? `${formatGp(
+                                            stats.potentialProfit,
+                                        )} gp`
+                                        : "—"
+                                }
+                                positive={
+                                    stats.potentialProfit !== null &&
+                                    stats.potentialProfit > 0
+                                }
                             />
+
                             <Stat
                                 label="Daily volume"
-                                value={formatGp(item.stats.dailyVolume)}
+                                value={
+                                    stats.dailyVolume !== null
+                                        ? formatGp(stats.dailyVolume)
+                                        : "—"
+                                }
                             />
                         </div>
 
@@ -244,7 +388,7 @@ export default function ItemPage() {
                             <h2>Price history</h2>
 
                             <div className="range-toggle">
-                                {['24H', '7D'].map((option) => (
+                                {PRICE_HISTORY_RANGES.map((option) => (
                                     <button
                                         key={option}
                                         type="button"
@@ -258,14 +402,14 @@ export default function ItemPage() {
                         </div>
 
                         <div className="chart-section">
-                            <PriceHistoryChart data={history} range={range}/>
+                            <PriceHistoryChart data={chartHistory} range={range}/>
                         </div>
 
                         <div className="volume-section">
                             <h2>Volume</h2>
 
                             <VolumeChart
-                                data={history}
+                                data={volumeHistory}
                                 range={range}
                             />
                         </div>
@@ -312,7 +456,7 @@ export default function ItemPage() {
                         </section>
 
                         <MarketOverview
-                            item={item}
+                            stats={stats}
                             history={history}
                             range={range}
                         />
@@ -322,25 +466,49 @@ export default function ItemPage() {
                 <section className="item-details">
                     <Detail
                         label="High alch"
-                        value={`${formatGp(item.highAlch)} gp`}
+                        value={
+                            metaItem.highAlch !== null
+                                ? `${formatGp(metaItem.highAlch)} gp`
+                                : "—"
+                        }
                     />
+
                     <Detail
                         label="Low alch"
-                        value={`${formatGp(item.lowAlch)} gp`}
+                        value={
+                            metaItem.lowAlch !== null
+                                ? `${formatGp(metaItem.lowAlch)} gp`
+                                : "—"
+                        }
                     />
+
                     <Detail
                         label="Buy limit"
-                        value={`${item.buyLimit} / 4h`}
+                        value={
+                            metaItem.buyLimit !== null
+                                ? `${metaItem.buyLimit} / 4h`
+                                : "—"
+                        }
                     />
+
                     <Detail
                         label="Daily volume"
-                        value={formatGp(item.stats.dailyVolume)}
+                        value={
+                            stats.dailyVolume !== null
+                                ? formatGp(stats.dailyVolume)
+                                : "—"
+                        }
                     />
+
                     <Detail
                         label="Members"
-                        value={item.members ? 'Yes' : 'No'}
+                        value={metaItem.members ? "Yes" : "No"}
                     />
-                    <Detail label="Item ID" value={String(item.id)}/>
+
+                    <Detail
+                        label="Item ID"
+                        value={String(metaItem.id)}
+                    />
                 </section>
             </main>
         </div>
