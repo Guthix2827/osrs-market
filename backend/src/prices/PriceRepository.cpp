@@ -147,3 +147,182 @@ bool PriceRepository::insert(
 
     return !result.empty();
 }
+
+std::vector<PricePoint>
+PriceRepository::findHistory(
+    std::int32_t itemId,
+    std::int64_t fromTimestamp,
+    std::int64_t toTimestamp
+)
+{
+    pqxx::work transaction{
+        database_.connection()
+    };
+
+    const auto result =
+        transaction.exec(
+            R"(
+                SELECT
+                    item_id,
+                    timestamp,
+                    avg_high_price,
+                    avg_low_price,
+                    high_price_volume,
+                    low_price_volume
+                FROM price_events
+                WHERE item_id = $1
+                  AND timestamp >= $2
+                  AND timestamp <= $3
+                ORDER BY timestamp ASC
+            )",
+            pqxx::params{
+                itemId,
+                fromTimestamp,
+                toTimestamp
+            }
+        );
+
+    std::vector<PricePoint> points;
+    points.reserve(result.size());
+
+    for (const auto& row : result)
+    {
+        points.push_back(
+            rowToPricePoint(row)
+        );
+    }
+
+    transaction.commit();
+
+    return points;
+}
+
+std::size_t PriceRepository::insertMany(
+    const std::vector<PricePoint>& points
+)
+{
+    if (points.empty())
+        return 0;
+
+    pqxx::work transaction{
+        database_.connection()
+    };
+
+    std::size_t inserted = 0;
+
+    for (const auto& point : points)
+    {
+        const auto result =
+            transaction.exec(
+                R"(
+                    INSERT INTO price_events
+                    (
+                        item_id,
+                        timestamp,
+                        avg_high_price,
+                        avg_low_price,
+                        high_price_volume,
+                        low_price_volume
+                    )
+                    VALUES
+                    (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6
+                    )
+                    ON CONFLICT (item_id, timestamp)
+                    DO NOTHING
+                    RETURNING id
+                )",
+                pqxx::params{
+                    point.itemId,
+                    point.timestamp,
+                    point.avgHighPrice,
+                    point.avgLowPrice,
+                    point.highPriceVolume,
+                    point.lowPriceVolume
+                }
+            );
+
+        if (!result.empty())
+            ++inserted;
+    }
+
+    transaction.commit();
+
+    return inserted;
+}
+
+std::optional<std::int64_t>
+PriceRepository::findOldestTimestamp(
+    std::int32_t itemId
+)
+{
+    pqxx::work transaction{
+        database_.connection()
+    };
+
+    const auto result =
+        transaction.exec(
+            R"(
+                SELECT MIN(timestamp)
+                FROM price_events
+                WHERE item_id = $1
+            )",
+            pqxx::params{
+                itemId
+            }
+        );
+
+    transaction.commit();
+
+    if (
+        result.empty() ||
+        result[0][0].is_null()
+    )
+    {
+        return std::nullopt;
+    }
+
+    return result[0][0]
+        .as<std::int64_t>();
+}
+
+
+std::optional<std::int64_t>
+PriceRepository::findNewestTimestamp(
+    std::int32_t itemId
+)
+{
+    pqxx::work transaction{
+        database_.connection()
+    };
+
+    const auto result =
+        transaction.exec(
+            R"(
+                SELECT MAX(timestamp)
+                FROM price_events
+                WHERE item_id = $1
+            )",
+            pqxx::params{
+                itemId
+            }
+        );
+
+    transaction.commit();
+
+    if (
+        result.empty() ||
+        result[0][0].is_null()
+    )
+    {
+        return std::nullopt;
+    }
+
+    return result[0][0]
+        .as<std::int64_t>();
+}
