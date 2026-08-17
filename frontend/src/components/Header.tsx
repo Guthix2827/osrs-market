@@ -21,14 +21,6 @@ export function Header() {
             </nav>
 
             <ItemSearch />
-
-            <a
-                href="https://github.com/Guthix2827/osrs-market"
-                className="github-link"
-                aria-label="GitHub repository"
-            >
-                GitHub
-            </a>
         </header>
     );
 }
