@@ -56,6 +56,7 @@ add_executable(
 
     src/jobs/MappingRefreshJob.cpp
     src/jobs/FiveMinutePriceRefreshJob.cpp
+    src/jobs/PriceBackfillJob.cpp
 
     src/items/ItemFilter.cpp
     src/items/ItemRepository.cpp
@@ -63,6 +64,10 @@ add_executable(
     src/prices/FiveMinutePriceClient.cpp
     src/prices/LatestPriceStore.cpp
     src/prices/PriceRepository.cpp
+    src/prices/TimeseriesClient.cpp
+    src/prices/BackfillPolicy.cpp
+    src/prices/BackfillManager.cpp
+    src/prices/ItemActivityTracker.cpp
 )
 
 target_include_directories(
