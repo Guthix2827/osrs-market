@@ -11,9 +11,14 @@ BackfillPolicy::BackfillPolicy(
 
 bool BackfillPolicy::needsLookback(
     std::int32_t itemId,
-    std::chrono::seconds lookback
+    std::string_view lookback,
+    std::chrono::seconds coverage,
+    std::chrono::seconds refreshAfter
 )
 {
+    //
+    // First: do we have enough historical coverage?
+    //
     const auto oldest =
         repository_.findOldestTimestamp(
             itemId
@@ -33,7 +38,23 @@ bool BackfillPolicy::needsLookback(
         ).count();
 
     const auto requiredStart =
-        nowTimestamp - lookback.count();
+        nowTimestamp - coverage.count();
 
-    return *oldest > requiredStart;
+    if (*oldest > requiredStart)
+        return true;
+
+
+    //
+    // Second: has this range been refreshed recently?
+    //
+    const auto lastBackfill =
+        repository_.findLastBackfill(
+            itemId,
+            lookback
+        );
+
+    if (!lastBackfill)
+        return true;
+
+    return now - *lastBackfill >= refreshAfter;
 }

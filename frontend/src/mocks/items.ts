@@ -1,6 +1,10 @@
-import type { Item } from "../types/item";
+import type {
+    ItemMetadata,
+    ItemPrice,
+    ItemStats,
+} from "../types/item";
 
-export const dragonAxe: Item = {
+export const dragonAxe: ItemMetadata = {
     id: 6739,
     name: "Dragon axe",
     examine: "A very powerful axe.",
@@ -11,18 +15,20 @@ export const dragonAxe: Item = {
     lowAlch: 22000,
     highAlch: 33000,
     buyLimit: 40,
+    value: 55000,
+};
 
-    price: {
-        high: 78975,
-        highTime: Date.now() / 1000 - 180,
-        low: 72249,
-        lowTime: Date.now() / 1000 - 480,
-    },
+export const dragonAxePrice: ItemPrice = {
+    high: 78975,
+    highTime: Date.now() / 1000 - 180,
 
-    stats: {
-        margin: 5147,
-        potentialProfit: 205880,
-        roi: 7.12,
-        dailyVolume: 1815,
-    },
+    low: 72249,
+    lowTime: Date.now() / 1000 - 480,
+};
+
+export const dragonAxeStats: ItemStats = {
+    margin: 5147,
+    potentialProfit: 205880,
+    roi: 7.12,
+    dailyVolume: 1815,
 };

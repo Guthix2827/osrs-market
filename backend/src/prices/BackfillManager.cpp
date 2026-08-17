@@ -44,16 +44,17 @@ void BackfillManager::ensureHistory(
     lastChecked_[itemId] = now;
 
 
-    //the method
     using namespace std::chrono_literals;
 
     if (policy_.needsLookback(
             itemId,
-            24h
+            "24h",
+            24h,
+            30min
         ))
     {
         Logger::info(
-            "Queueing 24h backfill for item ",
+            "Queueing 24h history refresh for item ",
             itemId
         );
 
@@ -67,11 +68,13 @@ void BackfillManager::ensureHistory(
 
     if (policy_.needsLookback(
             itemId,
-            7 * 24h
+            "7d",
+            7 * 24h,
+            6h
         ))
     {
         Logger::info(
-            "Queueing 7d backfill for item ",
+            "Queueing 7d history refresh for item ",
             itemId
         );
 
@@ -85,11 +88,13 @@ void BackfillManager::ensureHistory(
 
     if (policy_.needsLookback(
             itemId,
-            365 * 24h
+            "1y",
+            365 * 24h,
+            24h
         ))
     {
         Logger::info(
-            "Queueing 1y backfill for item ",
+            "Queueing 1y history refresh for item ",
             itemId
         );
 

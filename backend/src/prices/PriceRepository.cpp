@@ -326,3 +326,84 @@ PriceRepository::findNewestTimestamp(
     return result[0][0]
         .as<std::int64_t>();
 }
+
+std::optional<std::chrono::system_clock::time_point>
+PriceRepository::findLastBackfill(
+    std::int32_t itemId,
+    std::string_view lookback
+)
+{
+    pqxx::work transaction{
+        database_.connection()
+    };
+
+    const auto result =
+        transaction.exec(
+            R"(
+                SELECT
+                    EXTRACT(
+                        EPOCH FROM last_completed_at
+                    )::BIGINT AS timestamp
+                FROM price_backfill_state
+                WHERE item_id = $1
+                  AND lookback = $2
+            )",
+            pqxx::params{
+                itemId,
+                std::string{lookback}
+            }
+        );
+
+    transaction.commit();
+
+    if (result.empty())
+        return std::nullopt;
+
+    const auto timestamp =
+        result[0]["timestamp"]
+            .as<std::int64_t>();
+
+    return std::chrono::system_clock::time_point{
+        std::chrono::seconds{
+            timestamp
+        }
+    };
+}
+
+
+void PriceRepository::markBackfillComplete(
+    std::int32_t itemId,
+    std::string_view lookback
+)
+{
+    pqxx::work transaction{
+        database_.connection()
+    };
+
+    transaction.exec(
+        R"(
+            INSERT INTO price_backfill_state
+            (
+                item_id,
+                lookback,
+                last_completed_at
+            )
+            VALUES
+            (
+                $1,
+                $2,
+                CURRENT_TIMESTAMP
+            )
+            ON CONFLICT (item_id, lookback)
+            DO UPDATE SET
+                last_completed_at =
+                    CURRENT_TIMESTAMP
+        )",
+        pqxx::params{
+            itemId,
+            std::string{lookback}
+        }
+    );
+
+    transaction.commit();
+}

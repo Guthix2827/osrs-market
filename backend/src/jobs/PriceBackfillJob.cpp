@@ -39,6 +39,11 @@ void PriceBackfillJob::execute(
             repository_.insertMany(
                 timeseries.points
             );
+        
+        repository_.markBackfillComplete(
+            itemId,
+            lookback
+        );
 
         Logger::info(
             "Price backfill complete: item=",

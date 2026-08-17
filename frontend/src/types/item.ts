@@ -1,18 +1,4 @@
-export interface ItemPrice {
-    high: number;
-    highTime: number;
-    low: number;
-    lowTime: number;
-}
-
-export interface ItemStats {
-    margin: number;
-    potentialProfit: number;
-    roi: number;
-    dailyVolume: number;
-}
-
-export interface Item {
+export interface ItemMetadata {
     id: number;
     name: string;
     examine: string;
@@ -20,12 +6,25 @@ export interface Item {
 
     icon: string;
 
-    lowAlch: number;
-    highAlch: number;
-    buyLimit: number;
+    lowAlch: number | null;
+    highAlch: number | null;
+    buyLimit: number | null;
+    value: number | null;
+}
 
-    price: ItemPrice;
-    stats: ItemStats;
+export interface ItemPrice {
+    high: number | null;
+    highTime: number | null;
+
+    low: number | null;
+    lowTime: number | null;
+}
+
+export interface ItemStats {
+    margin: number | null;
+    potentialProfit: number | null;
+    roi: number | null;
+    dailyVolume: number | null;
 }
 
 export interface PricePoint {
