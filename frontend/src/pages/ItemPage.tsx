@@ -19,12 +19,25 @@ export default function ItemPage() {
     const [metaItem, setMetaItem] =
         useState<ItemMetadata | null>(null);
 
-    const [history, setHistory] =
-        useState<PricePoint[]>([]);
-
     const [range, setRange] =
         useState<PriceHistoryRange>("24H");
 
+    const [historyByRange, setHistoryByRange] =
+        useState<
+            Partial<
+                Record<
+                    PriceHistoryRange,
+                    PricePoint[]
+                >
+            >
+        >({});
+
+    const history =
+        historyByRange[range] ?? [];
+
+    useEffect(() => {
+        setHistoryByRange({});
+    }, [itemId]);
 
     // Load item metadata.
     useEffect(() => {
@@ -45,18 +58,41 @@ export default function ItemPage() {
             return;
         }
 
+        // Already loaded this range.
+        if (historyByRange[range]) {
+            return;
+        }
+
+        const controller =
+            new AbortController();
+
         const loadHistory = async () => {
             try {
                 const data =
                     await itemService.getPriceHistory(
                         itemId,
                         range,
+                        controller.signal,
                     );
 
-                setHistory(data);
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                setHistoryByRange((current) => ({
+                    ...current,
+                    [range]: data,
+                }));
             } catch (error) {
+                if (
+                    error instanceof DOMException &&
+                    error.name === "AbortError"
+                ) {
+                    return;
+                }
+
                 console.error(
-                    "Failed to load price history",
+                    "Failed to load history",
                     error,
                 );
             }
@@ -64,14 +100,49 @@ export default function ItemPage() {
 
         loadHistory();
 
+        return () => {
+            controller.abort();
+        };
+    }, [
+        itemId,
+        range,
+        historyByRange,
+    ]);
+
+    useEffect(() => {
+        if (!Number.isInteger(itemId)) {
+            return;
+        }
+
+        const refreshHistory = async () => {
+            try {
+                const data =
+                    await itemService.getPriceHistory(
+                        itemId,
+                        range,
+                    );
+
+                setHistoryByRange((current) => ({
+                    ...current,
+                    [range]: data,
+                }));
+            } catch (error) {
+                console.error(
+                    "History refresh failed",
+                    error,
+                );
+            }
+        };
+
         const interval =
             window.setInterval(
-                loadHistory,
-                5 * 60_000,
+                refreshHistory,
+                60_000,
             );
 
-        return () =>
+        return () => {
             window.clearInterval(interval);
+        };
     }, [itemId, range]);
 
     const price = useMemo<ItemPrice>(() => {
@@ -219,6 +290,21 @@ export default function ItemPage() {
             ),
         [history, range],
     );
+
+    //Debug data return for performance enhance
+    // useEffect(() => {
+    //     console.log("Chart data:", {
+    //         range,
+    //         raw: history.length,
+    //         price: chartHistory.length,
+    //         volume: volumeHistory.length,
+    //     });
+    // }, [
+    //     range,
+    //     history,
+    //     chartHistory,
+    //     volumeHistory,
+    // ]);
 
     if (!metaItem) {
         return (
@@ -373,7 +459,9 @@ export default function ItemPage() {
                                         key={option}
                                         type="button"
                                         className={range === option ? 'active' : ''}
-                                        onClick={() => setRange(option)}
+                                        onClick={() => {
+                                            setRange(option);
+                                        }}
                                     >
                                         {option}
                                     </button>
