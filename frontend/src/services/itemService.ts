@@ -79,10 +79,12 @@ export async function getPriceHistory(
     id: number,
     range: PriceHistoryRange,
 ): Promise<PricePoint[]> {
-    const backendRange =
-        range === "24H"
-            ? "24h"
-            : "7d";
+    const backendRange = {
+        "24H": "24h",
+        "7D": "7d",
+        "30D": "30d",
+        "1Y": "1y",
+    }[range];
 
     const response = await fetch(
         `${API_BASE_URL}/api/items/${id}/history?range=${backendRange}`,

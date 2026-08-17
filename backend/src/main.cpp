@@ -22,6 +22,7 @@
 #include "prices/BackfillPolicy.hpp"
 #include "prices/BackfillManager.hpp"
 #include "prices/ItemActivityTracker.hpp"
+#include "prices/PriceHistoryCache.hpp"
 
 #include <crow.h>
 #include <crow/middlewares/cors.h>
@@ -70,6 +71,7 @@ int main()
     // In-memory stores.
     LatestPriceStore latestPriceStore;
     MappingStore mappingStore;
+    PriceHistoryCache historyCache;
 
 
     // Hydrate latest prices from PostgreSQL.
@@ -155,7 +157,8 @@ int main()
     FiveMinutePriceRefreshJob priceRefreshJob{
         priceClient,
         latestPriceStore,
-        priceRepository
+        priceRepository,
+        historyCache
     };
 
     std::thread priceRefreshThread{
@@ -186,7 +189,8 @@ int main()
 
     PriceBackfillJob backfillJob{
         timeseriesClient,
-        backfillPriceRepository
+        backfillPriceRepository,
+        historyCache
     };
 
     PriceBackfillWorker backfillWorker{
@@ -381,7 +385,7 @@ int main()
     });
 
     CROW_ROUTE(app, "/api/items/<int>/history")
-    ([&priceRepository, &activityTracker](
+    ([&priceRepository, &activityTracker, &historyCache](
         const crow::request& req,
         int itemId
     )
@@ -406,11 +410,23 @@ int main()
 
         if (range == "24h")
         {
-            rangeSeconds = 24 * 60 * 60;
+            rangeSeconds =
+                24LL * 60 * 60;
         }
         else if (range == "7d")
         {
-            rangeSeconds = 7 * 24 * 60 * 60;
+            rangeSeconds =
+                7LL * 24 * 60 * 60;
+        }
+        else if (range == "30d")
+        {
+            rangeSeconds =
+                30LL * 24 * 60 * 60;
+        }
+        else if (range == "1y")
+        {
+            rangeSeconds =
+                365LL * 24 * 60 * 60;
         }
         else
         {
@@ -421,7 +437,90 @@ int main()
             };
         }
 
+
+        // Mark item as recently viewed.
         activityTracker.recordView(itemId);
+
+
+        //
+        // Try RAM cache first.
+        //
+        const auto cached =
+            historyCache.get(
+                itemId,
+                range
+            );
+
+        if (cached)
+        {
+            Logger::info(
+                "History cache hit: item=",
+                itemId,
+                " range=",
+                range
+            );
+
+            nlohmann::json data =
+                nlohmann::json::array();
+
+            for (const auto& point : *cached)
+            {
+                data.push_back({
+                    {"timestamp", point.timestamp},
+
+                    {
+                        "avgHighPrice",
+                        point.avgHighPrice
+                            ? nlohmann::json(
+                                *point.avgHighPrice
+                            )
+                            : nlohmann::json(nullptr)
+                    },
+
+                    {
+                        "avgLowPrice",
+                        point.avgLowPrice
+                            ? nlohmann::json(
+                                *point.avgLowPrice
+                            )
+                            : nlohmann::json(nullptr)
+                    },
+
+                    {
+                        "highPriceVolume",
+                        point.highPriceVolume
+                    },
+
+                    {
+                        "lowPriceVolume",
+                        point.lowPriceVolume
+                    }
+                });
+            }
+
+            nlohmann::json response{
+                {"itemId", itemId},
+                {"range", range},
+                {"data", std::move(data)}
+            };
+
+            return crow::response{
+                200,
+                "application/json",
+                response.dump()
+            };
+        }
+
+
+        //
+        // Cache miss: query PostgreSQL.
+        //
+        Logger::info(
+            "History cache miss: item=",
+            itemId,
+            " range=",
+            range
+        );
 
         const auto now =
             std::chrono::system_clock::now();
@@ -443,38 +542,56 @@ int main()
                 toTimestamp
             );
 
+
+        //
+        // Store result in RAM.
+        //
+        historyCache.set(
+            itemId,
+            range,
+            points
+        );
+
+
+        //
+        // Build response.
+        //
         nlohmann::json data =
             nlohmann::json::array();
 
         for (const auto& point : points)
         {
-            nlohmann::json jsonPoint{
+            data.push_back({
                 {"timestamp", point.timestamp},
+
                 {
                     "avgHighPrice",
                     point.avgHighPrice
-                        ? nlohmann::json(*point.avgHighPrice)
+                        ? nlohmann::json(
+                            *point.avgHighPrice
+                        )
                         : nlohmann::json(nullptr)
                 },
+
                 {
                     "avgLowPrice",
                     point.avgLowPrice
-                        ? nlohmann::json(*point.avgLowPrice)
+                        ? nlohmann::json(
+                            *point.avgLowPrice
+                        )
                         : nlohmann::json(nullptr)
                 },
+
                 {
                     "highPriceVolume",
                     point.highPriceVolume
                 },
+
                 {
                     "lowPriceVolume",
                     point.lowPriceVolume
                 }
-            };
-
-            data.push_back(
-                std::move(jsonPoint)
-            );
+            });
         }
 
         nlohmann::json response{
@@ -489,7 +606,6 @@ int main()
             response.dump()
         };
     });
-
     app
         .port(8080)
         .multithreaded()

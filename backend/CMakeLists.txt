@@ -68,6 +68,7 @@ add_executable(
     src/prices/BackfillPolicy.cpp
     src/prices/BackfillManager.cpp
     src/prices/ItemActivityTracker.cpp
+    src/prices/PriceHistoryCache.cpp
 )
 
 target_include_directories(

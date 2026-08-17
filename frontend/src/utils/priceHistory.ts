@@ -3,6 +3,7 @@ import type { PriceHistoryRange } from "../services/itemService";
 
 const FIVE_MINUTES = 5 * 60;
 const ONE_HOUR = 60 * 60;
+const ONE_DAY = 24 * 60 * 60;
 
 export function normalizeVolumeHistory(
     history: PricePoint[],
@@ -15,10 +16,15 @@ export function normalizeVolumeHistory(
     switch (range) {
         case "24H":
         case "7D":
-            return toHourlyVolume(history);
+            return toHourlyVolume(
+                history,
+            );
 
-        default:
-            return history;
+        case "30D":
+        case "1Y":
+            return toDailyVolume(
+                history,
+            );
     }
 }
 
@@ -30,15 +36,96 @@ export function normalizePriceHistory(
         return [];
     }
 
-    if (range === "24H") {
-        return fillFiveMinuteGaps(history);
+    switch (range) {
+        case "24H":
+            return fillFiveMinuteGaps(history);
+
+        case "7D":
+            return toHourlyPoints(history);
+
+        case "30D":
+        case "1Y":
+            return toDailyPoints(history);
+    }
+}
+
+function toDailyPoints(
+    history: PricePoint[],
+): PricePoint[] {
+    const sorted =
+        [...history].sort(
+            (a, b) =>
+                a.timestamp -
+                b.timestamp,
+        );
+
+    const buckets = new Map<
+        number,
+        PricePoint[]
+    >();
+
+    for (const point of sorted) {
+        const day =
+            Math.floor(
+                point.timestamp /
+                ONE_DAY,
+            ) * ONE_DAY;
+
+        const bucket =
+            buckets.get(day) ?? [];
+
+        bucket.push(point);
+
+        buckets.set(
+            day,
+            bucket,
+        );
     }
 
-    if (range === "7D") {
-        return toHourlyPoints(history);
+    const result: PricePoint[] = [];
+
+    let lastHigh: number | null = null;
+    let lastLow: number | null = null;
+
+    for (const [timestamp, points] of buckets) {
+        let high: number | null = lastHigh;
+        let low: number | null = lastLow;
+
+        for (const point of points) {
+            if (point.avgHighPrice !== null) {
+                high = point.avgHighPrice;
+            }
+
+            if (point.avgLowPrice !== null) {
+                low = point.avgLowPrice;
+            }
+        }
+
+        lastHigh = high;
+        lastLow = low;
+
+        result.push({
+            timestamp,
+            avgHighPrice: high,
+            avgLowPrice: low,
+
+            highPriceVolume:
+                points.reduce(
+                    (sum, point) =>
+                        sum + point.highPriceVolume,
+                    0,
+                ),
+
+            lowPriceVolume:
+                points.reduce(
+                    (sum, point) =>
+                        sum + point.lowPriceVolume,
+                    0,
+                ),
+        });
     }
 
-    return history;
+    return result;
 }
 
 function fillFiveMinuteGaps(
@@ -119,6 +206,12 @@ function fillFiveMinuteGaps(
 function toHourlyPoints(
     history: PricePoint[],
 ): PricePoint[] {
+    if (history.length === 0) {
+        return [];
+    }
+
+    const ONE_HOUR = 60 * 60;
+
     const sorted = [...history].sort(
         (a, b) => a.timestamp - b.timestamp,
     );
@@ -138,7 +231,6 @@ function toHourlyPoints(
             buckets.get(hour) ?? [];
 
         bucket.push(point);
-
         buckets.set(hour, bucket);
     }
 
@@ -166,23 +258,20 @@ function toHourlyPoints(
 
         result.push({
             timestamp,
-
             avgHighPrice: high,
             avgLowPrice: low,
 
             highPriceVolume:
                 points.reduce(
                     (sum, point) =>
-                        sum +
-                        point.highPriceVolume,
+                        sum + point.highPriceVolume,
                     0,
                 ),
 
             lowPriceVolume:
                 points.reduce(
                     (sum, point) =>
-                        sum +
-                        point.lowPriceVolume,
+                        sum + point.lowPriceVolume,
                     0,
                 ),
         });
@@ -297,4 +386,60 @@ function toHourlyVolume(
     }
 
     return result;
+}
+
+function toDailyVolume(
+    history: PricePoint[],
+): PricePoint[] {
+    if (history.length === 0) {
+        return [];
+    }
+
+    const buckets = new Map<
+        number,
+        PricePoint[]
+    >();
+
+    for (const point of history) {
+        const day =
+            Math.floor(
+                point.timestamp / ONE_DAY,
+            ) * ONE_DAY;
+
+        const bucket =
+            buckets.get(day) ?? [];
+
+        bucket.push(point);
+        buckets.set(day, bucket);
+    }
+
+    const result: PricePoint[] = [];
+
+    for (const [timestamp, points] of buckets) {
+        result.push({
+            timestamp,
+
+            // Not used by the volume chart.
+            avgHighPrice: null,
+            avgLowPrice: null,
+
+            highPriceVolume:
+                points.reduce(
+                    (sum, point) =>
+                        sum + point.highPriceVolume,
+                    0,
+                ),
+
+            lowPriceVolume:
+                points.reduce(
+                    (sum, point) =>
+                        sum + point.lowPriceVolume,
+                    0,
+                ),
+        });
+    }
+
+    return result.sort(
+        (a, b) => a.timestamp - b.timestamp,
+    );
 }

@@ -187,6 +187,21 @@ export default function ItemPage() {
         };
     }, [history]);
 
+    const dailyVolume = useMemo(() => {
+        const now = Math.floor(Date.now() / 1000);
+        const cutoff = now - 24 * 60 * 60;
+
+        return history
+            .filter(point => point.timestamp >= cutoff)
+            .reduce(
+                (total, point) =>
+                    total +
+                    point.highPriceVolume +
+                    point.lowPriceVolume,
+                0,
+            );
+    }, [history]);
+
     const chartHistory = useMemo(
         () =>
             normalizePriceHistory(
@@ -279,9 +294,9 @@ export default function ItemPage() {
                     </div>
 
                     <div className="price-block">
-        <span className="price-label price-buy">
-            Instant buy
-        </span>
+                        <span className="price-label price-buy">
+                            Instant buy
+                        </span>
 
                         <div className="price-value">
                             {price.high !== null
@@ -376,11 +391,7 @@ export default function ItemPage() {
 
                             <Stat
                                 label="Daily volume"
-                                value={
-                                    stats.dailyVolume !== null
-                                        ? formatGp(stats.dailyVolume)
-                                        : "—"
-                                }
+                                value={formatGp(dailyVolume)}
                             />
                         </div>
 
