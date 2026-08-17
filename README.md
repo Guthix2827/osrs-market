@@ -8,34 +8,43 @@ The goal is to build a fast, self-contained market data service that does not re
 
 ## Project Status
 
-This project is currently under active development.
+This project is currently under active development. The core backend data pipeline and the first complete item-market frontend are now working end to end.
 
 Implemented:
 
-- C++20 backend
-- Crow HTTP server
+- C++20 backend with Crow
 - RuneScape Wiki item mapping synchronization
 - Local item icon caching
-- PostgreSQL persistence
-- Item metadata revision history
-- In-memory item cache
+- PostgreSQL persistence and item metadata revision history
+- In-memory metadata and latest-price stores
 - Bulk 5-minute market price collection
-- In-memory latest-price cache
 - Change-based price event persistence
 - Background price collection
+- Historical timeseries API
+- On-demand historical backfilling for recently viewed items
+- Coverage-aware history caching that avoids caching incomplete ranges
+- 24-hour, 7-day, 30-day, and 1-year history ranges
+- React + TypeScript item page integrated with the C++ API
+- Item search by name or ID
+- Price and volume charts
+- Bought vs sold 24-hour volume visualization
+- Market statistics including margin, ROI, limit profit, price change, spread, volume, and liquidity
+- Responsive desktop, tablet, and mobile layouts
+- Sticky responsive navigation and search
+- About page and site footer
+- Client-side history caching by range for fast chart switching
+- Periodic frontend history refresh
 - Docker development environment
 
-Planned:
+Planned / next steps:
 
-- Historical price API
-- Historical timeseries backfill
-- 24-hour / 7-day / longer-range charts
-- WebSocket live price updates
-- Market statistics
-- Price aggregation
-- Frontend integration
+- Movers and volume discovery pages
+- Watchlists and user accounts
+- Share functionality
+- Additional market statistics and aggregation
 - Production Docker image
 - Reverse proxy / production deployment
+- Further frontend and backend performance hardening
 
 ---
 
@@ -532,11 +541,11 @@ A connection pool may replace this arrangement later as the number of concurrent
 
 ---
 
-# Planned Historical Data Flow
+# Historical Data Flow
 
 The bulk `/5m` endpoint is used for ongoing market collection.
 
-Individual timeseries endpoints will be used primarily for historical backfilling.
+Individual timeseries endpoints are used primarily for historical backfilling.
 
 For example:
 
@@ -560,7 +569,7 @@ Do we have sufficient local history?
 
 After an item has been backfilled, the continuous `/5m` collector extends its history.
 
-Eventually:
+This produces:
 
 ```text
 historical Wiki data
@@ -573,40 +582,13 @@ long-term local market history
 
 ---
 
-# Planned Live Updates
+# Frontend History Refresh
 
-Live frontend updates will eventually use WebSockets.
+The frontend loads historical data from the backend and keeps previously visited ranges in a client-side cache. Each range owns its own dataset, avoiding unnecessary chart reprocessing when switching between 24H, 7D, 30D, and 1Y views.
 
-The browser will subscribe to an item rather than repeatedly downloading the entire chart.
+The currently selected range is refreshed periodically. Stale requests can be cancelled when navigation changes, while previously loaded ranges remain immediately available in memory.
 
-```text
-Browser
-   |
-   | subscribe: 6739
-   v
-WebSocket
-   |
-   v
-Backend
-   |
-   v
-LatestPriceStore
-```
-
-When the collector detects a new market state:
-
-```text
-/5m update
-    |
-    v
-LatestPriceStore
-    |
-    +--> PostgreSQL
-    |
-    +--> WebSocket subscribers
-```
-
-The existing historical chart remains loaded while only new points are pushed to the browser.
+Real-time WebSocket delivery is not currently required; the existing periodic refresh is intentionally kept simple unless future product requirements justify push-based updates.
 
 ---
 
@@ -674,7 +656,22 @@ Item icons:
 GET /icons/6739.png
 ```
 
-Additional market and historical endpoints are under development.
+Historical price data:
+
+```text
+GET /api/items/6739/history?range=24h
+GET /api/items/6739/history?range=7d
+GET /api/items/6739/history?range=30d
+GET /api/items/6739/history?range=1y
+```
+
+Item search:
+
+```text
+GET /api/items/search?q=dragon
+```
+
+Historical requests are served from local PostgreSQL data. Recently viewed items can be queued for background backfill when local coverage is incomplete, and incomplete ranges are not cached as if they were fully synchronized.
 
 ---
 
@@ -700,7 +697,8 @@ This project is primarily being developed to explore and practice:
 - Time-series market data
 - In-memory caching
 - REST API design
-- WebSockets
 - Dockerized C++ development
 - Production deployment
 - React/C++ integration
+- Responsive frontend architecture
+- Client-side caching and chart performance
