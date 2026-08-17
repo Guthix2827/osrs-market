@@ -687,6 +687,7 @@
     font-size: 15px;
     font-weight: 500;
     width: 100%;
+    min-width: 50px;
     text-align: left;
 }
 
@@ -1221,13 +1222,6 @@
         gap: 12px;
 
         padding: 8px 0;
-    }
-
-    .distribution-row > div,
-    .distribution-row span,
-    .distribution-row strong,
-    .distribution-row b {
-        min-width: 0;
     }
 
     .distribution-row b {

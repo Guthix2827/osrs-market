@@ -6,6 +6,10 @@ The application collects item metadata and real-time Grand Exchange price data f
 
 The goal is to build a fast, self-contained market data service that does not require the frontend to depend directly on the upstream API.
 
+## Screenshots
+
+![OSRS Market item page](docs/screenshots/item-page-desktop.png)
+
 ## Project Status
 
 This project is currently under active development. The core backend data pipeline and the first complete item-market frontend are now working end to end.
@@ -702,3 +706,14 @@ This project is primarily being developed to explore and practice:
 - React/C++ integration
 - Responsive frontend architecture
 - Client-side caching and chart performance
+
+---
+
+## License
+
+This project is source-available for educational, portfolio,
+and security-review purposes.
+
+Copyright © 2026. All rights reserved.
+
+See [LICENSE](LICENSE) for details.
