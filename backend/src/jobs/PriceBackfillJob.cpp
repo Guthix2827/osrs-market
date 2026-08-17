@@ -2,16 +2,19 @@
 
 #include "../prices/PriceRepository.hpp"
 #include "../prices/TimeseriesClient.hpp"
+#include "../prices/PriceHistoryCache.hpp"
 #include "../utils/Logger.hpp"
 
 #include <exception>
 
 PriceBackfillJob::PriceBackfillJob(
     TimeseriesClient& client,
-    PriceRepository& repository
+    PriceRepository& repository,
+    PriceHistoryCache& historyCache
 )
     : client_(client),
-      repository_(repository)
+      repository_(repository),
+      historyCache_(historyCache)
 {
 }
 

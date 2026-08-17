@@ -5,13 +5,15 @@
 
 class TimeseriesClient;
 class PriceRepository;
+class PriceHistoryCache;
 
 class PriceBackfillJob
 {
 public:
     PriceBackfillJob(
         TimeseriesClient& client,
-        PriceRepository& repository
+        PriceRepository& repository,
+        PriceHistoryCache& historyCache
     );
 
     void execute(
@@ -22,4 +24,5 @@ public:
 private:
     TimeseriesClient& client_;
     PriceRepository& repository_;
+    PriceHistoryCache& historyCache_;
 };

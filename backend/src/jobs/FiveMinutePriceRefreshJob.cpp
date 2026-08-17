@@ -5,19 +5,24 @@
 #include "../prices/FiveMinutePriceClient.hpp"
 #include "../prices/LatestPriceStore.hpp"
 #include "../prices/PriceRepository.hpp"
+#include "../prices/PriceHistoryCache.hpp"
 
 #include <cstddef>
 #include <exception>
 #include <iostream>
 
+class PriceHistoryCache;
+
 FiveMinutePriceRefreshJob::FiveMinutePriceRefreshJob(
     FiveMinutePriceClient& client,
     LatestPriceStore& latestPriceStore,
-    PriceRepository& priceRepository
+    PriceRepository& priceRepository,
+    PriceHistoryCache& historyCache
 )
     : client_(client),
       latestPriceStore_(latestPriceStore),
-      priceRepository_(priceRepository)
+      priceRepository_(priceRepository),
+      historyCache_(historyCache)
 {
 }
 
@@ -57,7 +62,13 @@ void FiveMinutePriceRefreshJob::execute()
             ++changed;
 
             if (priceRepository_.insert(point))
+            {
                 ++inserted;
+
+                historyCache_.invalidate(
+                    point.itemId
+                );
+            }
         }
 
         Logger::info(

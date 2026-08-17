@@ -1,3 +1,4 @@
+#include "../utils/Logger.hpp"
 #include "ItemActivityTracker.hpp"
 
 void ItemActivityTracker::recordView(

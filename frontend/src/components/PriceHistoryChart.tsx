@@ -207,6 +207,38 @@ export function VolumeChart({
     );
 }
 
+function getPriceRoundStep(price: number): number {
+    if (price < 1_000) {
+        return 100;
+    }
+
+    if (price < 10_000) {
+        return 500;
+    }
+
+    if (price < 100_000) {
+        return 5_000;
+    }
+
+    if (price < 1_000_000) {
+        return 10_000;
+    }
+
+    if (price < 10_000_000) {
+        return 100_000;
+    }
+
+    if (price < 100_000_000) {
+        return 1_000_000;
+    }
+
+    if (price < 1_000_000_000) {
+        return 10_000_000;
+    }
+
+    return 100_000_000;
+}
+
 export function PriceHistoryChart({data, range}: {
     data: PricePoint[];
     range: string;
@@ -230,44 +262,42 @@ export function PriceHistoryChart({data, range}: {
         });
     };
 
-    const prices = data.flatMap((point) => [
-        point.avgHighPrice,
-        point.avgLowPrice,
-    ]).filter((value): value is number => value !== null);
+    const prices = data
+        .flatMap((point) => [
+            point.avgHighPrice,
+            point.avgLowPrice,
+        ])
+        .filter(
+            (value): value is number =>
+                typeof value === 'number' &&
+                Number.isFinite(value),
+        );
+
+    if (prices.length === 0) {
+        return (
+            <div style={{ width: '100%', height: 300 }}>
+                No price data
+            </div>
+        );
+    }
 
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
 
     const dailyTicks = getDailyTicks(data);
 
-    function getPriceRoundStep(price: number): number {
-        if (price < 10_000) {
-            return 1_000;
-        }
-
-        if (price < 1_000_000) {
-            return 10_000;
-        }
-
-        if (price < 10_000_000) {
-            return 100_000;
-        }
-
-        if (price < 100_000_000) {
-            return 1_000_000;
-        }
-
-        if (price < 1_000_000_000) {
-            return 10_000_000;
-        }
-
-        return 100_000_000;
-    }
-
     const step = getPriceRoundStep(maxPrice);
 
-    const yMin = Math.floor(minPrice / step) * step;
-    const yMax = Math.ceil(maxPrice / step) * step;
+    let yMin =
+        Math.floor((minPrice * 0.95) / step) * step;
+
+    let yMax =
+        Math.ceil((maxPrice * 1.05) / step) * step;
+
+    if (yMin === yMax) {
+        yMin -= step;
+        yMax += step;
+    }
 
     function TimeAxisTick({
                               x,
