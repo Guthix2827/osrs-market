@@ -11,6 +11,7 @@
 #include "jobs/PriceBackfillRequest.hpp"
 #include "jobs/PriceBackfillWorker.hpp"
 #include "jobs/PriceBackfillJob.hpp"
+#include "jobs/FullHistoryBackfillJob.hpp"
 
 #include "database/Database.hpp"
 #include "items/ItemRepository.hpp"
@@ -37,8 +38,16 @@
 #include <cstdlib>
 #include <string>
 
-int main()
+int main(
+    int argc,
+    char* argv[]
+)
 {
+    const std::string command =
+        argc >= 2
+            ? argv[1]
+            : "serve";
+
     // Database connection
     const char* databaseUrl =
         std::getenv("DATABASE_URL");
@@ -229,6 +238,32 @@ int main()
     };
 
     backfillThread.detach();
+
+
+    //backfill commands  
+    if (command == "backfill-all")
+    {
+        FullHistoryBackfillJob fullBackfill{
+            mappingStore,
+            backfillJob,
+            backfillPolicy
+        };
+
+        fullBackfill.run();
+
+        return 0;
+    }
+
+    if (command != "serve")
+    {
+        Logger::error(
+            "Unknown command: ",
+            command
+        );
+
+        return 1;
+    }
+
 
 
     //stores

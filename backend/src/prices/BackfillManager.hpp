@@ -23,6 +23,10 @@ public:
         std::int32_t itemId
     );
 
+    void ensureAllAvailableHistory(
+        std::int32_t itemId
+    );
+
 private:
     BackfillPolicy& policy_;
     JobQueue<PriceBackfillRequest>& queue_;

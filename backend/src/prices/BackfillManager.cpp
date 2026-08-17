@@ -106,3 +106,55 @@ void BackfillManager::ensureHistory(
         );
     }
 }
+
+void BackfillManager::ensureAllAvailableHistory(
+    std::int32_t itemId
+)
+{
+    using namespace std::chrono_literals;
+
+    if (
+        policy_.needsLookback(
+            itemId,
+            "24h",
+            24h,
+            30min
+        )
+    )
+    {
+        queue_.push({
+            itemId,
+            "24h"
+        });
+    }
+
+    if (
+        policy_.needsLookback(
+            itemId,
+            "7d",
+            7 * 24h,
+            6h
+        )
+    )
+    {
+        queue_.push({
+            itemId,
+            "7d"
+        });
+    }
+
+    if (
+        policy_.needsLookback(
+            itemId,
+            "1y",
+            365 * 24h,
+            24h
+        )
+    )
+    {
+        queue_.push({
+            itemId,
+            "1y"
+        });
+    }
+}
