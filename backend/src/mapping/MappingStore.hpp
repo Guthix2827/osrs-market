@@ -26,6 +26,11 @@ public:
     [[nodiscard]]
     std::size_t size() const;
 
+    std::vector<ItemMapping> search(
+        std::string_view query,
+        std::size_t limit
+    ) const;
+
 private:
     mutable std::shared_mutex mutex_;
 

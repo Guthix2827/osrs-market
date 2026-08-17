@@ -1,159 +1,12 @@
-:root {
-    --bg: #0d0f0e;
-    --surface: #121513;
-    --surface-soft: #151815;
-    --border: #35342d;
-
-    --text: #e9e2d5;
-    --muted: #aaa69d;
-    --gold: #c99d5e;
-
-    --positive: #5fc653;
-    --negative: #e14332;
-
-    --chart-grid: rgba(255, 255, 255, 0.055);
-
-    font-family:
-            Inter,
-            system-ui,
-            -apple-system,
-            BlinkMacSystemFont,
-            'Segoe UI',
-            sans-serif;
-
-    color: var(--text);
-    background: var(--bg);
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    background:
-            radial-gradient(
-                    circle at 50% 0%,
-                    rgba(70, 65, 45, 0.06),
-                    transparent 32%
-            ),
-            var(--bg);
-}
-
-button,
-input {
-    font: inherit;
-}
-
-a {
-    color: inherit;
-    text-decoration: none;
-}
-
-.market-page {
-    min-height: 100vh;
-}
-
-/* Header */
-
-.market-header {
-    height: 74px;
-    padding: 0 32px;
-
-    display: grid;
-    grid-template-columns: auto auto minmax(300px, 500px) 1fr;
-    align-items: center;
-    gap: 42px;
-
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(10, 12, 11, 0.92);
-}
-
-.market-logo {
-    color: var(--gold);
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 27px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.market-nav {
-    display: flex;
-    gap: 28px;
-    color: #d5d0c7;
-    font-size: 15px;
-}
-
-.market-nav a:hover {
-    color: white;
-}
-
-.market-search {
-    height: 44px;
-
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    padding: 0 13px;
-
-    border: 1px solid #343631;
-    border-radius: 6px;
-    background: #111412;
-}
-
-.search-icon {
-    font-size: 2.5rem;
-    line-height: 1;
-    color: var(--muted);
-    transform: translateY(-6px);
-}
-
-.market-search input {
-    width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--text);
-    font-size: 14px;
-}
-
-.market-search input::placeholder {
-    color: #888a84;
-}
-
-.market-search kbd {
-    padding: 2px 7px;
-    border: 1px solid #44463f;
-    border-radius: 4px;
-    color: #999a94;
-    font-size: 12px;
-}
-
-.github-link {
-    justify-self: end;
-    color: #d8d4cd;
-    font-size: 15px;
-}
-
-/* Main */
-
 .item-container {
     width: 100%;
     max-width: 1600px;
+
     margin: 0 auto;
     padding-inline: 24px;
 }
 
-.market-header {
-    padding-inline: max(
-            24px,
-            calc((100vw - 1600px) / 2 + 24px)
-    );
-}
-
 /* Item hero */
-
 .item-hero {
     display: grid;
 
@@ -1028,14 +881,6 @@ a {
 /* Responsive */
 
 @media (max-width: 1180px) {
-    .market-header {
-        grid-template-columns: auto 1fr auto;
-    }
-
-    .market-nav {
-        display: none;
-    }
-
     .content-grid {
         grid-template-columns: 1fr;
     }
@@ -1066,19 +911,6 @@ a {
 }
 
 @media (max-width: 760px) {
-    .market-header {
-        height: auto;
-        padding: 16px;
-
-        grid-template-columns: 1fr auto;
-        gap: 14px;
-    }
-
-    .market-search {
-        grid-column: 1 / -1;
-        grid-row: 2;
-    }
-
     .item-container {
         padding: 16px;
     }

@@ -59,41 +59,66 @@ export function MarketOverview({
             prices.length
             : null;
 
-    const totalVolume = history.reduce(
-        (sum, point) =>
-            sum +
-            point.highPriceVolume +
-            point.lowPriceVolume,
-        0,
-    );
+    const rangeStart =
+        history.length > 0
+            ? history[0].timestamp
+            : null;
 
-    const half = Math.floor(history.length / 2);
+    const rangeEnd =
+        history.length > 0
+            ? history[history.length - 1].timestamp
+            : null;
 
-    const firstHalfVolume = history
-        .slice(0, half)
-        .reduce(
-            (sum, point) =>
-                sum +
-                point.highPriceVolume +
-                point.lowPriceVolume,
-            0,
-        );
+    const midpoint =
+        rangeStart !== null &&
+        rangeEnd !== null
+            ? rangeStart +
+            Math.floor(
+                (rangeEnd - rangeStart) / 2
+            )
+            : null;
 
-    const secondHalfVolume = history
-        .slice(half)
-        .reduce(
-            (sum, point) =>
-                sum +
-                point.highPriceVolume +
-                point.lowPriceVolume,
-            0,
-        );
+    const firstHalfVolume =
+        midpoint !== null
+            ? history
+                .filter(
+                    (point) =>
+                        point.timestamp < midpoint
+                )
+                .reduce(
+                    (sum, point) =>
+                        sum +
+                        point.highPriceVolume +
+                        point.lowPriceVolume,
+                    0,
+                )
+            : 0;
+
+    const secondHalfVolume =
+        midpoint !== null
+            ? history
+                .filter(
+                    (point) =>
+                        point.timestamp >= midpoint
+                )
+                .reduce(
+                    (sum, point) =>
+                        sum +
+                        point.highPriceVolume +
+                        point.lowPriceVolume,
+                    0,
+                )
+            : 0;
 
     const volumeChange =
         firstHalfVolume > 0
-            ? ((secondHalfVolume - firstHalfVolume) /
-                firstHalfVolume) *
-            100
+            ? (
+            (
+                secondHalfVolume -
+                firstHalfVolume
+            ) /
+            firstHalfVolume
+        ) * 100
             : null;
 
     const spreads = history
@@ -124,15 +149,13 @@ export function MarketOverview({
             : null;
 
     //liquidity calculation
-    const averageDailyVolume =
-        history.length > 0
-            ? (totalVolume / history.length) * 24
-            : 0;
+    const dailyVolume =
+        stats.dailyVolume ?? 0;
 
     const liquidity =
-        averageDailyVolume >= 10_000
+        dailyVolume >= 10_000
             ? 'High'
-            : averageDailyVolume >= 2_000
+            : dailyVolume >= 2_000
                 ? 'Medium'
                 : 'Low';
 

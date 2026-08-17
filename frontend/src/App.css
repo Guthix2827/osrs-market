@@ -1,0 +1,55 @@
+:root {
+    --bg: #0d0f0e;
+    --surface: #121513;
+    --surface-soft: #151815;
+    --border: #35342d;
+
+    --text: #e9e2d5;
+    --muted: #aaa69d;
+    --gold: #c99d5e;
+
+    --positive: #5fc653;
+    --negative: #e14332;
+
+    --chart-grid: rgba(255, 255, 255, 0.055);
+
+    font-family:
+            Inter,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            'Segoe UI',
+            sans-serif;
+
+    color: var(--text);
+    background: var(--bg);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background:
+            radial-gradient(
+                    circle at 50% 0%,
+                    rgba(70, 65, 45, 0.06),
+                    transparent 32%
+            ),
+            var(--bg);
+}
+
+button,
+input {
+    font: inherit;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.market-page {
+    min-height: 100vh;
+}

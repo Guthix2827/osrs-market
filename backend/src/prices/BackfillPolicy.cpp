@@ -58,3 +58,32 @@ bool BackfillPolicy::needsLookback(
 
     return now - *lastBackfill >= refreshAfter;
 }
+
+bool BackfillPolicy::hasCoverage(
+    std::int32_t itemId,
+    std::chrono::seconds coverage
+)
+{
+    const auto oldest =
+        repository_.findOldestTimestamp(
+            itemId
+        );
+
+    if (!oldest)
+        return false;
+
+    const auto now =
+        std::chrono::system_clock::now();
+
+    const auto nowTimestamp =
+        std::chrono::duration_cast<
+            std::chrono::seconds
+        >(
+            now.time_since_epoch()
+        ).count();
+
+    const auto requiredStart =
+        nowTimestamp - coverage.count();
+
+    return *oldest <= requiredStart;
+}

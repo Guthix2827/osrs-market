@@ -1,4 +1,4 @@
-import type {ItemMetadata, ItemPrice, ItemStats, PricePoint} from "../types/item";
+import type {ItemMetadata, ItemPrice, ItemSearchResult, ItemStats, PricePoint} from "../types/item";
 
 import {dragonAxe, dragonAxePrice, dragonAxeStats} from "../mocks/items";
 
@@ -102,8 +102,33 @@ export async function getPriceHistory(
     return json.data;
 }
 
+interface ItemSearchResponse {
+    data: ItemSearchResult[];
+}
+
+export async function searchItems(
+    query: string,
+): Promise<ItemSearchResult[]> {
+    const response = await fetch(
+        `${API_BASE_URL}/api/items/search?q=${encodeURIComponent(query)}`,
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Failed to search items (${response.status})`,
+        );
+    }
+
+    const json =
+        await response.json() as ItemSearchResponse;
+
+    return json.data;
+}
+
+
 export const itemService = {
     getItem,
     getItemMock,
     getPriceHistory,
+    searchItems
 };
