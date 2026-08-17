@@ -21,6 +21,12 @@ public:
         std::chrono::seconds refreshAfter
     );
 
+    [[nodiscard]]
+    bool hasCoverage(
+        std::int32_t itemId,
+        std::chrono::seconds coverage
+    );
+
 private:
     PriceRepository& repository_;
 };

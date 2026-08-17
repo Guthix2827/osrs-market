@@ -36,3 +36,10 @@ export interface PricePoint {
     highPriceVolume: number;
     lowPriceVolume: number;
 }
+
+export interface ItemSearchResult {
+    id: number;
+    name: string;
+    members: boolean;
+    icon: string;
+}

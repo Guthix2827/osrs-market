@@ -52,19 +52,33 @@ int main()
 
     Database itemDatabase{databaseUrl};
     Database priceDatabase{databaseUrl};
+    Database historyDatabase{databaseUrl};
     Database backfillDatabase{databaseUrl};
+    Database coverageDatabase{databaseUrl};
 
     // Repositories.
     ItemRepository itemRepository{
         itemDatabase
     };
 
+    // Dedicated to live 5m collector.
     PriceRepository priceRepository{
         priceDatabase
     };
 
+    // Dedicated to HTTP history reads.
+    PriceRepository historyRepository{
+        historyDatabase
+    };
+
+    // Dedicated to backfill writes.
     PriceRepository backfillPriceRepository{
         backfillDatabase
+    };
+
+    // Dedicated to coverage checks.
+    PriceRepository coverageRepository{
+        coverageDatabase
     };
 
 
@@ -199,7 +213,7 @@ int main()
     };
 
     BackfillPolicy backfillPolicy{
-        backfillPriceRepository
+        coverageRepository
     };
 
     BackfillManager backfillManager{
@@ -385,7 +399,10 @@ int main()
     });
 
     CROW_ROUTE(app, "/api/items/<int>/history")
-    ([&priceRepository, &activityTracker, &historyCache](
+    ([&historyRepository,
+    &activityTracker,
+    &historyCache,
+    &backfillPolicy](
         const crow::request& req,
         int itemId
     )
@@ -536,21 +553,40 @@ int main()
             toTimestamp - rangeSeconds;
 
         const auto points =
-            priceRepository.findHistory(
+            historyRepository.findHistory(
                 itemId,
                 fromTimestamp,
                 toTimestamp
             );
+        
+        const bool hasCoverage =
+            backfillPolicy.hasCoverage(
+                itemId,
+                std::chrono::seconds{
+                    rangeSeconds
+                }
+            );
 
-
-        //
-        // Store result in RAM.
-        //
-        historyCache.set(
-            itemId,
-            range,
-            points
-        );
+        if (hasCoverage)
+        {
+            //
+            // Store result in RAM.
+            //
+            historyCache.set(
+                itemId,
+                range,
+                points
+            );
+        }
+        else
+        {
+            Logger::info(
+                "History not cached because coverage is incomplete: item=",
+                itemId,
+                " range=",
+                range
+            );
+        }
 
 
         //
@@ -606,6 +642,65 @@ int main()
             response.dump()
         };
     });
+
+    CROW_ROUTE(app, "/api/items/search")
+    ([&mappingStore](const crow::request& req)
+    {
+        const char* queryParam =
+            req.url_params.get("q");
+
+        if (!queryParam)
+        {
+            return crow::response{
+                400,
+                "application/json",
+                R"({"error":"Missing query parameter"})"
+            };
+        }
+
+        const std::string query{
+            queryParam
+        };
+
+        if (query.empty())
+        {
+            return crow::response{
+                200,
+                "application/json",
+                R"({"data":[]})"
+            };
+        }
+
+        const auto results =
+            mappingStore.search(
+                query,
+                15
+            );
+
+        nlohmann::json data =
+            nlohmann::json::array();
+
+        for (const auto& item : results)
+        {
+            data.push_back({
+                {"id", item.id},
+                {"name", item.name},
+                {"members", item.members},
+                {"icon", "/icons/" + std::to_string(item.id) + ".png"}
+            });
+        }
+
+        nlohmann::json response{
+            {"data", std::move(data)}
+        };
+
+        return crow::response{
+            200,
+            "application/json",
+            response.dump()
+        };
+    });
+    
     app
         .port(8080)
         .multithreaded()

@@ -67,7 +67,7 @@ export default function ItemPage() {
         const interval =
             window.setInterval(
                 loadHistory,
-                60_000,
+                5 * 60_000,
             );
 
         return () =>
@@ -237,38 +237,7 @@ export default function ItemPage() {
     } = tradeDistribution;
 
     return (
-        <div className="market-page">
-            <header className="market-header">
-                <a href="/" className="market-logo">
-                    OSRS Market
-                </a>
-
-                <nav className="market-nav">
-                    <a href="#">Items</a>
-                    <a href="#">Movers</a>
-                    <a href="#">Volume</a>
-                    <a href="#">Watchlist</a>
-                </nav>
-
-                <div className="market-search">
-                    <span className="search-icon">⌕</span>
-                    <input
-                        type="text"
-                        placeholder="Search items by name or ID..."
-                    />
-                    <kbd>/</kbd>
-                </div>
-
-                <a
-                    href="#"
-                    className="github-link"
-                    aria-label="GitHub repository"
-                >
-                    GitHub
-                </a>
-            </header>
-
-            <main className="item-container">
+        <main className="item-container">
                 <section className="item-hero">
                     <div className="item-identity">
                         <div className="item-icon-frame">
@@ -522,7 +491,6 @@ export default function ItemPage() {
                     />
                 </section>
             </main>
-        </div>
     );
 }
 
