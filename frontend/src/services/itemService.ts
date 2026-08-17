@@ -78,6 +78,7 @@ export async function getItem(
 export async function getPriceHistory(
     id: number,
     range: PriceHistoryRange,
+    signal?: AbortSignal
 ): Promise<PricePoint[]> {
     const backendRange = {
         "24H": "24h",
@@ -88,6 +89,9 @@ export async function getPriceHistory(
 
     const response = await fetch(
         `${API_BASE_URL}/api/items/${id}/history?range=${backendRange}`,
+        {
+            signal,
+        },
     );
 
     if (!response.ok) {
