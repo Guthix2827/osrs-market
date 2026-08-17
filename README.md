@@ -679,6 +679,84 @@ Historical requests are served from local PostgreSQL data. Recently viewed items
 
 ---
 
+## Development & Maintenance Commands
+
+### Build and start the backend
+
+Build the backend image:
+
+```bash
+docker compose build backend
+```
+
+Start the backend service:
+
+```bash
+docker compose up -d backend
+```
+
+### Rebuild during development
+
+Recompile the C++ backend inside the running development container and restart the service:
+
+```bash
+docker compose exec backend cmake --build build && \
+docker compose restart backend
+```
+
+### Check item backfill status
+
+View the completed historical backfills for a specific item:
+
+```bash
+docker compose exec postgres \
+  psql -U osrs_market -d osrs_market \
+  -c "
+    SELECT
+        item_id,
+        lookback,
+        last_completed_at
+    FROM price_backfill_state
+    WHERE item_id = 6739
+    ORDER BY lookback;
+  "
+```
+
+Replace `6739` with the desired item ID.
+
+### Backfill history for all items
+
+Run the one-time full historical backfill:
+
+```bash
+docker compose run --rm backend \
+  ./build/osrs-market-backend backfill-all
+```
+
+The temporary backend container is removed after the command completes. PostgreSQL data is persisted separately and is not removed.
+
+### Monitor full backfill progress
+
+Check how many items have completed each historical lookback:
+
+```bash
+docker compose exec postgres \
+  psql -U osrs_market -d osrs_market \
+  -c "
+    SELECT
+        lookback,
+        COUNT(*) AS completed,
+        ROUND(COUNT(*) * 100.0 / 4648, 2) AS percent
+    FROM price_backfill_state
+    GROUP BY lookback
+    ORDER BY lookback;
+  "
+```
+
+> `4648` is the current number of tracked items. Update this value if the mapping size changes.
+
+---
+
 # Data Source
 
 Market and item data are sourced from the RuneScape Wiki / RuneLite real-time price APIs.

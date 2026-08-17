@@ -57,6 +57,7 @@ add_executable(
     src/jobs/MappingRefreshJob.cpp
     src/jobs/FiveMinutePriceRefreshJob.cpp
     src/jobs/PriceBackfillJob.cpp
+    src/jobs/FullHistoryBackfillJob.cpp
 
     src/items/ItemFilter.cpp
     src/items/ItemRepository.cpp
