@@ -406,7 +406,7 @@ export function PriceHistoryChart({data, range}: {
                         type="linear"
                         dataKey="avgHighPrice"
                         stroke="#5fc653"
-                        strokeWidth={1.5}
+                        strokeWidth={2}
                         dot={false}
                         isAnimationActive={false}
                     />
@@ -414,8 +414,8 @@ export function PriceHistoryChart({data, range}: {
                     <Line
                         type="linear"
                         dataKey="avgLowPrice"
-                        stroke="#e14332"
-                        strokeWidth={1.5}
+                        stroke="var(--negative)"
+                        strokeWidth={2}
                         dot={false}
                         isAnimationActive={false}
                     />
