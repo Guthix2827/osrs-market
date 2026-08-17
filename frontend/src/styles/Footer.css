@@ -1,0 +1,143 @@
+.market-footer {
+    margin-top: 42px;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+    background:
+            linear-gradient(
+                    to bottom,
+                    rgba(18, 21, 19, 0.95),
+                    #0b0d0c
+            );
+}
+
+.market-footer-inner {
+    width: 100%;
+    max-width: 1600px;
+
+    margin: 0 auto;
+    padding: 36px 24px 30px;
+
+    display: grid;
+    grid-template-columns:
+        minmax(260px, 1.4fr)
+        minmax(420px, 1fr);
+
+    gap: 70px;
+}
+
+.footer-brand {
+    max-width: 420px;
+}
+
+.footer-logo {
+    display: inline-block;
+
+    margin-bottom: 12px;
+
+    color: var(--gold);
+
+    font-family:
+            Georgia,
+            "Times New Roman",
+            serif;
+
+    font-size: 23px;
+    font-weight: 700;
+}
+
+.footer-brand p {
+    margin: 0;
+
+    color: var(--muted);
+
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.footer-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 40px;
+}
+
+.footer-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 10px;
+}
+
+.footer-heading {
+    margin-bottom: 4px;
+
+    color: #ddd6ca;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+}
+
+.footer-column a {
+    color: var(--muted);
+
+    font-size: 13px;
+    text-decoration: none;
+
+    transition: color 120ms ease;
+}
+
+.footer-column a:hover {
+    color: var(--text);
+}
+
+.footer-bottom {
+    width: 100%;
+    max-width: 1600px;
+
+    margin: 0 auto;
+    padding: 16px 24px 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+    color: #777b74;
+
+    font-size: 11px;
+}
+
+@media (max-width: 850px) {
+    .market-footer-inner {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+
+    .footer-links {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .market-footer-inner {
+        padding-top: 28px;
+    }
+
+    .footer-links {
+        grid-template-columns: 1fr 1fr;
+        gap: 28px;
+    }
+
+    .footer-bottom {
+        align-items: flex-start;
+        flex-direction: column;
+
+        gap: 6px;
+    }
+}

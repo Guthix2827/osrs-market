@@ -6,7 +6,9 @@ import {
 } from "react-router-dom";
 
 import ItemPage from "./pages/ItemPage";
+import AboutPage from "./pages/AboutPage";
 import { Header } from "./components/Header.tsx";
+import { Footer } from "./components/Footer";
 import "./App.css";
 
 function App() {
@@ -22,6 +24,11 @@ function App() {
                     />
 
                     <Route
+                        path="/about"
+                        element={<AboutPage />}
+                    />
+
+                    <Route
                         path="/"
                         element={
                             <Navigate
@@ -31,6 +38,8 @@ function App() {
                         }
                     />
                 </Routes>
+
+                <Footer />
             </div>
         </BrowserRouter>
     );
