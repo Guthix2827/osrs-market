@@ -1,5 +1,6 @@
 #include "MappingClient.hpp"
 #include "../utils/Logger.hpp"
+#include "../items/TaxExemptItems.hpp"
 
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
@@ -94,6 +95,10 @@ std::vector<ItemMapping> MappingClient::fetchAll() const
         item.examine = entry.value("examine", "");
         item.icon = entry.value("icon", "");
         item.members = entry.value("members", false);
+
+        if(isGeTaxFree(item.id)){
+            item.taxFree = true;
+        }
 
         if (entry.contains("lowalch") && !entry["lowalch"].is_null())
             item.lowAlch = entry["lowalch"].get<std::int64_t>();
