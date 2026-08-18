@@ -35,14 +35,68 @@ function getDailyTicks(data: PricePoint[]): number[] {
         .slice(-7);
 }
 
-function formatTooltipTimestamp(timestamp: number): string {
-    return new Date(timestamp * 1000).toLocaleString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
+const bucketSeconds = (range: string) => {
+    return range === "24H"
+        ? 5 * 60
+        : range === "7D"
+            ? 60 * 60
+            : 24 * 60 * 60;
+};
+
+const formatTooltipTimestamp = (
+    timestamp: number,
+    range: string,
+) => {
+    const start =
+        new Date(timestamp * 1000);
+
+    if (range === "30D" || range === "1Y") {
+        return start.toLocaleDateString(
+            "en-GB",
+            {
+                day: "numeric",
+                month: "numeric",
+                year: "numeric",
+            },
+        );
+    }
+
+    const date =
+        start.toLocaleDateString(
+            "en-GB",
+            {
+                day: "numeric",
+                month: "short",
+            },
+        );
+
+    const end =
+        new Date(
+            (timestamp + bucketSeconds(range)) * 1000,
+        );
+
+    const startTime =
+        start.toLocaleTimeString(
+            "en-GB",
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+            },
+        );
+
+    const endTime =
+        end.toLocaleTimeString(
+            "en-GB",
+            {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false,
+            },
+        );
+
+    return `${date}, ${startTime}–${endTime}`;
+};
 
 export const VolumeChart =
     memo(function VolumeChart({data, range,}: {
@@ -490,7 +544,7 @@ export const PriceHistoryChart =
                                 color: '#e9e2d5',
                             }}
                             labelFormatter={(timestamp) =>
-                                formatTooltipTimestamp(Number(timestamp))
+                                formatTooltipTimestamp(Number(timestamp), range)
                             }
                             formatter={(value, name) => [
                                 `${Number(value).toLocaleString()} gp`,
