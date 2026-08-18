@@ -1256,3 +1256,33 @@
         font-size: 17px;
     }
 }
+
+
+.reset-zoom-button {
+    height: 34px;
+    padding: 0 12px;
+
+    border: 1px solid var(--border);
+    border-radius: 4px;
+
+    background: transparent;
+
+    color: var(--muted);
+
+    font: inherit;
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+.reset-zoom-button:hover {
+    color: var(--text);
+    border-color: var(--gold);
+}
+
+.price-chart {
+    cursor: crosshair;
+}
+.price-chart.is-selecting {
+    user-select: none;
+}

@@ -3,13 +3,13 @@ import {
     BarChart,
     CartesianGrid,
     Line,
-    LineChart,
+    LineChart, ReferenceArea,
     ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
 } from 'recharts';
-import {memo, useMemo} from "react";
+import {memo, useMemo, useState} from "react";
 
 interface PricePoint {
     timestamp: number;
@@ -255,10 +255,21 @@ function getPriceRoundStep(price: number): number {
 }
 
 export const PriceHistoryChart =
-    memo(function PriceHistoryChart({data, range,}: {
+    memo(function PriceHistoryChart({data, range, onZoomChange, onResetZoom}: {
         data: PricePoint[];
         range: string;
+        onZoomChange: (
+            start: number,
+            end: number,
+        ) => void;
+        onResetZoom: () => void;
     }) {
+
+        const [selectionStart, setSelectionStart] =
+            useState<number | null>(null);
+
+        const [selectionEnd, setSelectionEnd] =
+            useState<number | null>(null);
 
         const formatXAxis = (timestamp: number) => {
             const date = new Date(timestamp * 1000);
@@ -372,10 +383,56 @@ export const PriceHistoryChart =
         }
 
         return (
-            <div style={{ width: '100%', height: 300 }}>
+            <div
+                style={{ width: '100%', height: 300 }}
+                onContextMenu={(event) => {
+                    event.preventDefault();
+                    onResetZoom();
+                }}
+            >
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                         data={data}
+                        onMouseDown={(state) => {
+                            if (
+                                typeof state?.activeLabel ===
+                                "number"
+                            ) {
+                                setSelectionStart(
+                                    state.activeLabel,
+                                );
+
+                                setSelectionEnd(
+                                    state.activeLabel,
+                                );
+                            }
+                        }}
+                        onMouseMove={(state) => {
+                            if (
+                                selectionStart !== null &&
+                                typeof state?.activeLabel ===
+                                "number"
+                            ) {
+                                setSelectionEnd(
+                                    state.activeLabel,
+                                );
+                            }
+                        }}
+                        onMouseUp={() => {
+                            if (
+                                selectionStart !== null &&
+                                selectionEnd !== null &&
+                                selectionStart !== selectionEnd
+                            ) {
+                                onZoomChange(
+                                    selectionStart,
+                                    selectionEnd,
+                                );
+                            }
+
+                            setSelectionStart(null);
+                            setSelectionEnd(null);
+                        }}
                         margin={{
                             top: 10,
                             right: 10,
@@ -383,6 +440,16 @@ export const PriceHistoryChart =
                             left: 5,
                         }}
                     >
+                        {selectionStart !== null &&
+                            selectionEnd !== null && (
+                                <ReferenceArea
+                                    x1={selectionStart}
+                                    x2={selectionEnd}
+                                    strokeOpacity={0.3}
+                                    fillOpacity={0.12}
+                                />
+                            )}
+
                         <CartesianGrid
                             stroke="rgba(255,255,255,0.055)"
                             vertical={true}

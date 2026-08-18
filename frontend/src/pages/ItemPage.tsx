@@ -22,6 +22,17 @@ export default function ItemPage() {
     const [range, setRange] =
         useState<PriceHistoryRange>("24H");
 
+    const [zoomStart, setZoomStart] =
+        useState<number | null>(null);
+
+    const [zoomEnd, setZoomEnd] =
+        useState<number | null>(null);
+
+    const resetZoom = () => {
+        setZoomStart(null);
+        setZoomEnd(null);
+    };
+
     const [historyByRange, setHistoryByRange] =
         useState<
             Partial<
@@ -226,38 +237,6 @@ export default function ItemPage() {
         price.low,
     ]);
 
-    const tradeDistribution = useMemo(() => {
-        const bought = history.reduce(
-            (sum, point) =>
-                sum + point.highPriceVolume,
-            0,
-        );
-
-        const sold = history.reduce(
-            (sum, point) =>
-                sum + point.lowPriceVolume,
-            0,
-        );
-
-        const total = bought + sold;
-
-        return {
-            bought,
-            sold,
-            total,
-
-            boughtPercent:
-                total > 0
-                    ? (bought / total) * 100
-                    : 0,
-
-            soldPercent:
-                total > 0
-                    ? (sold / total) * 100
-                    : 0,
-        };
-    }, [history]);
-
     const dailyVolume = useMemo(() => {
         const now = Math.floor(Date.now() / 1000);
         const cutoff = now - 24 * 60 * 60;
@@ -290,6 +269,100 @@ export default function ItemPage() {
             ),
         [history, range],
     );
+
+    const visiblePriceHistory = useMemo(() => {
+        if (
+            zoomStart === null ||
+            zoomEnd === null
+        ) {
+            return chartHistory;
+        }
+
+        const min =
+            Math.min(
+                zoomStart,
+                zoomEnd,
+            );
+
+        const max =
+            Math.max(
+                zoomStart,
+                zoomEnd,
+            );
+
+        return chartHistory.filter(
+            (point) =>
+                point.timestamp >= min &&
+                point.timestamp <= max,
+        );
+    }, [
+        chartHistory,
+        zoomStart,
+        zoomEnd,
+    ]);
+
+    const visibleVolumeHistory = useMemo(() => {
+        if (
+            zoomStart === null ||
+            zoomEnd === null
+        ) {
+            return volumeHistory;
+        }
+
+        const min =
+            Math.min(
+                zoomStart,
+                zoomEnd,
+            );
+
+        const max =
+            Math.max(
+                zoomStart,
+                zoomEnd,
+            );
+
+        return volumeHistory.filter(
+            (point) =>
+                point.timestamp >= min &&
+                point.timestamp <= max,
+        );
+    }, [
+        volumeHistory,
+        zoomStart,
+        zoomEnd,
+    ]);
+
+    const tradeDistribution = useMemo(() => {
+        const bought = visibleVolumeHistory.reduce(
+            (sum, point) =>
+                sum + point.highPriceVolume,
+            0,
+        );
+
+        const sold = visibleVolumeHistory.reduce(
+            (sum, point) =>
+                sum + point.lowPriceVolume,
+            0,
+        );
+
+        const total = bought + sold;
+
+        return {
+            bought,
+            sold,
+            total,
+
+            boughtPercent:
+                total > 0
+                    ? (bought / total) * 100
+                    : 0,
+
+            soldPercent:
+                total > 0
+                    ? (sold / total) * 100
+                    : 0,
+        };
+    }, [visibleVolumeHistory]);
 
     //Debug data return for performance enhance
     // useEffect(() => {
@@ -467,17 +540,36 @@ export default function ItemPage() {
                                     </button>
                                 ))}
                             </div>
+
+                            {zoomStart !== null &&
+                                zoomEnd !== null && (
+                                    <button
+                                        type="button"
+                                        className="reset-zoom-button"
+                                        onClick={resetZoom}
+                                    >
+                                        Reset zoom
+                                    </button>
+                                )}
                         </div>
 
                         <div className="chart-section">
-                            <PriceHistoryChart data={chartHistory} range={range}/>
+                            <PriceHistoryChart
+                                data={visiblePriceHistory}
+                                range={range}
+                                onZoomChange={(start, end) => {
+                                    setZoomStart(start);
+                                    setZoomEnd(end);
+                                }}
+                                onResetZoom={resetZoom}
+                            />
                         </div>
 
                         <div className="volume-section">
                             <h2>Volume</h2>
 
                             <VolumeChart
-                                data={volumeHistory}
+                                data={visibleVolumeHistory}
                                 range={range}
                             />
                         </div>
@@ -485,7 +577,14 @@ export default function ItemPage() {
 
                     <aside className="sidebar">
                         <section className="side-card">
-                            <h2>Bought vs Sold ({range})</h2>
+                            <h2>
+                                Bought vs Sold (
+                                {zoomStart !== null &&
+                                zoomEnd !== null
+                                    ? "Zoom"
+                                    : range}
+                                )
+                            </h2>
 
                             <div className="trade-distribution">
                                 <div
