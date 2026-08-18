@@ -476,12 +476,16 @@ export default function ItemPage() {
                         <button
                             type="button"
                             disabled
-                            title="Watchlists will be available with user accounts"
+                            title="Under development"
                         >
                             Watch
                         </button>
 
-                        <button type="button">
+                        <button
+                            type="button"
+                            disabled
+                            title="Under development"
+                        >
                             Share
                         </button>
                     </div>
@@ -523,7 +527,7 @@ export default function ItemPage() {
 
                             <Stat
                                 label="ROI"
-                                tooltip="Return of Investment"
+                                tooltip="Estimated profit or loss as a percentage of the purchase price, after Grand Exchange tax."
                                 value={
                                     stats.roi !== null
                                         ? `${stats.roi.toFixed(2)}%`
