@@ -130,6 +130,7 @@
     justify-content: space-between;
 
     margin: 20px 22px 16px;
+    position: relative;
 }
 
 .chart-toolbar h2 {
@@ -1272,6 +1273,10 @@
     font-size: 13px;
 
     cursor: pointer;
+
+    position: absolute;
+    top: 44px;
+    right: 0;
 }
 
 .reset-zoom-button:hover {
