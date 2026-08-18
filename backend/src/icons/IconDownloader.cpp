@@ -13,7 +13,7 @@ constexpr auto WIKI_IMAGE_BASE_URL =
     "https://oldschool.runescape.wiki/images/";
 
 constexpr auto USER_AGENT =
-    "osrs-market-alpha/0.1";
+    "osrs-market/0.1 (github.com/Guthix2827/osrs-market)";
 }
 
 IconDownloader::IconDownloader(
