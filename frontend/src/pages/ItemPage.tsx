@@ -559,6 +559,17 @@ export default function ItemPage() {
                         <div className="chart-toolbar">
                             <h2>Price history</h2>
 
+                            {zoomStart !== null &&
+                                zoomEnd !== null && (
+                                    <button
+                                        type="button"
+                                        className="reset-zoom-button"
+                                        onClick={resetZoom}
+                                    >
+                                        Reset zoom
+                                    </button>
+                                )}
+
                             <div className="range-toggle">
                                 {PRICE_HISTORY_RANGES.map((option) => (
                                     <button
@@ -573,17 +584,6 @@ export default function ItemPage() {
                                     </button>
                                 ))}
                             </div>
-
-                            {zoomStart !== null &&
-                                zoomEnd !== null && (
-                                    <button
-                                        type="button"
-                                        className="reset-zoom-button"
-                                        onClick={resetZoom}
-                                    >
-                                        Reset zoom
-                                    </button>
-                                )}
                         </div>
 
                         <div className="chart-section">
