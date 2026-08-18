@@ -16,4 +16,6 @@ struct ItemMapping
     std::optional<std::int64_t> highAlch;
     std::optional<std::int64_t> value;
     std::optional<std::int64_t> buyLimit;
+
+    std::optional<bool> taxFree;
 };

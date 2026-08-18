@@ -6,6 +6,7 @@ import {PriceHistoryChart, VolumeChart} from "../components/PriceHistoryChart.ts
 import {MarketOverview} from "../components/MarketOverview.tsx";
 import { useParams } from "react-router-dom";
 import {normalizePriceHistory, normalizeVolumeHistory} from "../utils/priceHistory.ts";
+import {calculateGeTax} from "../utils/ge.ts";
 
 function formatGp(value: number) {
     return new Intl.NumberFormat('en-US').format(value);
@@ -201,18 +202,31 @@ export default function ItemPage() {
                 ? price.high - price.low
                 : null;
 
+        const tax =
+            price.high !== null
+                ? calculateGeTax(
+                    price.high,
+                    metaItem?.taxFree === true
+                )
+                : 0;
+
+        const netMargin =
+            margin !== null
+                ? margin - tax
+                : null;
+
         const roi =
-            margin !== null &&
+            netMargin !== null &&
             price.low !== null &&
             price.low > 0
-                ? (margin / price.low) * 100
+                ? (netMargin / price.low) * 100
                 : null;
 
         const potentialProfit =
-            margin !== null &&
+            netMargin !== null &&
             metaItem?.buyLimit !== null &&
             metaItem?.buyLimit !== undefined
-                ? margin * metaItem.buyLimit
+                ? netMargin * metaItem.buyLimit
                 : null;
 
         const dailyVolume =
@@ -226,6 +240,7 @@ export default function ItemPage() {
 
         return {
             margin,
+            netMargin,
             roi,
             potentialProfit,
             dailyVolume,
@@ -486,6 +501,24 @@ export default function ItemPage() {
                                     stats.margin !== null &&
                                     stats.margin > 0
                                 }
+                                negative={
+                                    stats.margin !== null && stats.margin < 0
+                                }
+                            />
+
+                            <Stat
+                                label="Net Margin"
+                                value={
+                                    stats.netMargin !== null
+                                        ? `${formatGp(stats.netMargin)} gp`
+                                        : "—"
+                                }
+                                positive={
+                                    stats.netMargin !== null && stats.netMargin > 0
+                                }
+                                negative={
+                                    stats.netMargin !== null && stats.netMargin < 0
+                                }
                             />
 
                             <Stat
@@ -681,16 +714,11 @@ export default function ItemPage() {
     );
 }
 
-function Stat({
-                  label,
-                  value,
-                  positive = false,
-                  secondary,
-                  tooltip,
-              }: {
+function Stat({label, value, positive = false, negative = false, secondary, tooltip,}: {
     label: string;
     value: string;
     positive?: boolean;
+    negative?: boolean;
     secondary?: string;
     tooltip?: string;
 }) {
@@ -711,7 +739,11 @@ function Stat({
 
             <span
                 className={`stat-value ${
-                    positive ? 'positive' : ''
+                    positive
+                        ? 'positive'
+                        : negative
+                            ? 'negative'
+                            : ''
                 }`}
             >
                 {value}

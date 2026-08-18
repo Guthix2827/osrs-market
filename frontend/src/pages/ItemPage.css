@@ -316,7 +316,7 @@
 
 .stats-strip {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
 
     padding: 16px 0;
 
@@ -937,11 +937,6 @@
                 1px solid rgba(255, 255, 255, 0.07);
     }
 
-    .stat:nth-child(3),
-    .stat:nth-child(4) {
-        border-bottom: 0;
-    }
-
     .stat::after {
         display: none;
     }
@@ -963,6 +958,10 @@
 
         white-space: nowrap;
         text-overflow: ellipsis;
+    }
+
+    .stat:nth-child(5) {
+        grid-column: 1 / -1;
     }
 
     .item-details {

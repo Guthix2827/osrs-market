@@ -10,6 +10,8 @@ export interface ItemMetadata {
     highAlch: number | null;
     buyLimit: number | null;
     value: number | null;
+
+    taxFree?: boolean;
 }
 
 export interface ItemPrice {
@@ -22,6 +24,7 @@ export interface ItemPrice {
 
 export interface ItemStats {
     margin: number | null;
+    netMargin: number | null;
     potentialProfit: number | null;
     roi: number | null;
     dailyVolume: number | null;
