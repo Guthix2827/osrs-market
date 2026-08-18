@@ -56,6 +56,9 @@ public:
         std::string_view lookback
     );
 
+    std::optional<std::int64_t>
+    findLatestTimestamp();
+
 private:
     Database& database_;
 };

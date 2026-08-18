@@ -4,6 +4,8 @@
 
 #include <pqxx/pqxx>
 #include <optional>
+#include <cstdint>
+#include <utility>
 #include <vector>
 
 PriceRepository::PriceRepository(
@@ -406,4 +408,27 @@ void PriceRepository::markBackfillComplete(
     );
 
     transaction.commit();
+}
+
+std::optional<std::int64_t>
+PriceRepository::findLatestTimestamp()
+{
+    pqxx::work tx{
+        database_.connection()
+    };
+
+    const auto result =
+        tx.exec1(
+            R"(
+                SELECT MAX(timestamp)
+                FROM price_events
+            )"
+        );
+
+    if (result[0].is_null())
+    {
+        return std::nullopt;
+    }
+
+    return result[0].as<std::int64_t>();
 }

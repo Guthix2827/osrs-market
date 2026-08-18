@@ -9,9 +9,9 @@
 #include "jobs/FiveMinutePriceRefreshJob.hpp"
 #include "jobs/JobQueue.hpp"
 #include "jobs/PriceBackfillRequest.hpp"
-#include "jobs/PriceBackfillWorker.hpp"
 #include "jobs/PriceBackfillJob.hpp"
 #include "jobs/FullHistoryBackfillJob.hpp"
+#include "jobs/GapRecoveryJob.hpp"
 
 #include "database/Database.hpp"
 #include "items/ItemRepository.hpp"
@@ -21,8 +21,6 @@
 #include "prices/PriceRepository.hpp"
 #include "prices/TimeseriesClient.hpp"
 #include "prices/BackfillPolicy.hpp"
-#include "prices/BackfillManager.hpp"
-#include "prices/ItemActivityTracker.hpp"
 #include "prices/PriceHistoryCache.hpp"
 
 #include <crow.h>
@@ -140,7 +138,7 @@ int main(
     TimeseriesClient timeseriesClient;
 
 
-    // Icon subsystem.
+    // Icon subsystem. - required for mapping job
     JobQueue<IconDownloadJob> iconQueue;
 
     IconDownloader iconDownloader{
@@ -176,6 +174,76 @@ int main(
     mappingJob.execute();
 
 
+    // Historical backfill subsystem.
+    JobQueue<PriceBackfillRequest> backfillQueue;
+
+    PriceBackfillJob backfillJob{
+        timeseriesClient,
+        backfillPriceRepository,
+        historyCache
+    };
+
+    BackfillPolicy backfillPolicy{
+        coverageRepository
+    };
+
+
+    //backfill commands  
+    if (command == "backfill-all")
+    {
+        FullHistoryBackfillJob fullBackfill{
+            mappingStore,
+            backfillJob,
+            backfillPolicy
+        };
+
+        fullBackfill.run();
+
+        return 0;
+    }
+
+    if (command != "serve")
+    {
+        Logger::error(
+            "Unknown command: ",
+            command
+        );
+
+        return 1;
+    }
+
+    // --------------------------------------------------
+    // Everything below this point belongs to serve mode.
+    // --------------------------------------------------
+
+    //backfill missing data in case downtime
+    GapRecoveryJob gapRecoveryJob{
+        mappingStore,
+        backfillPriceRepository,
+        backfillJob
+    };
+
+    //run in the background
+    std::thread gapRecoveryThread{
+        [&gapRecoveryJob]
+        {
+            try
+            {
+                gapRecoveryJob.run();
+            }
+            catch (const std::exception& e)
+            {
+                Logger::error(
+                    "Gap recovery failed: ",
+                    e.what()
+                );
+            }
+        }
+    };
+
+    gapRecoveryThread.detach();
+
+
     // Live 5-minute price collection.
     FiveMinutePriceRefreshJob priceRefreshJob{
         priceClient,
@@ -205,106 +273,6 @@ int main(
     Logger::info(
         "Price refresh worker launched"
     );
-
-
-    // Historical backfill subsystem.
-    JobQueue<PriceBackfillRequest> backfillQueue;
-
-    PriceBackfillJob backfillJob{
-        timeseriesClient,
-        backfillPriceRepository,
-        historyCache
-    };
-
-    PriceBackfillWorker backfillWorker{
-        backfillQueue,
-        backfillJob
-    };
-
-    BackfillPolicy backfillPolicy{
-        coverageRepository
-    };
-
-    BackfillManager backfillManager{
-        backfillPolicy,
-        backfillQueue
-    };
-
-    std::thread backfillThread{
-        [&backfillWorker]
-        {
-            backfillWorker.run();
-        }
-    };
-
-    backfillThread.detach();
-
-
-    //backfill commands  
-    if (command == "backfill-all")
-    {
-        FullHistoryBackfillJob fullBackfill{
-            mappingStore,
-            backfillJob,
-            backfillPolicy
-        };
-
-        fullBackfill.run();
-
-        return 0;
-    }
-
-    if (command != "serve")
-    {
-        Logger::error(
-            "Unknown command: ",
-            command
-        );
-
-        return 1;
-    }
-
-
-
-    //stores
-    ItemActivityTracker activityTracker;
-
-    //backfill thread
-    std::thread backfillSchedulerThread{
-        [&activityTracker, &backfillManager]
-        {
-            using namespace std::chrono_literals;
-
-            while (true)
-            {
-                const auto activeItems =
-                    activityTracker.recentlyViewed(
-                        30min
-                    );
-
-                if (!activeItems.empty())
-                {
-                    Logger::info(
-                        "Backfill scheduler checking ",
-                        activeItems.size(),
-                        " recently viewed items"
-                    );
-                }
-
-                for (const auto itemId :
-                    activeItems)
-                {
-                    backfillManager.ensureHistory(
-                        itemId
-                    );
-                }
-
-                std::this_thread::sleep_for(1min);
-            }
-        }
-    };
-
-    backfillSchedulerThread.detach();
 
 
     //init crow
@@ -435,7 +403,6 @@ int main(
 
     CROW_ROUTE(app, "/api/items/<int>/history")
     ([&historyRepository,
-    &activityTracker,
     &historyCache,
     &backfillPolicy](
         const crow::request& req,
@@ -488,10 +455,6 @@ int main(
                 R"({"error":"Unsupported range"})"
             };
         }
-
-
-        // Mark item as recently viewed.
-        activityTracker.recordView(itemId);
 
 
         //

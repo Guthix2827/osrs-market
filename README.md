@@ -25,7 +25,7 @@ Implemented:
 - Change-based price event persistence
 - Background price collection
 - Historical timeseries API
-- On-demand historical backfilling for recently viewed items
+- Startup gap recovery after collector downtime
 - Coverage-aware history caching that avoids caching incomplete ranges
 - 24-hour, 7-day, 30-day, and 1-year history ranges
 - React + TypeScript item page integrated with the C++ API
@@ -374,19 +374,17 @@ main()
  |      |
  |      +--> Store current item metadata in RAM
  |
- +--> Create background services/jobs
- |      |
- |      +--> IconDownloadWorker
- |      |
- |      +--> MappingRefreshJob
- |      |
- |      +--> FiveMinutePriceRefreshJob
+ +--> Refresh item mapping
  |
- +--> Start icon worker thread
+ +--> Check latest global market timestamp
+ |      |
+ |      +--> Recent --> no recovery
+ |      |
+ |      +--> Gap detected --> start GapRecoveryJob
  |
- +--> Start mapping refresh thread
+ +--> Start IconDownloadWorker thread
  |
- +--> Start price refresh thread
+ +--> Start FiveMinutePriceRefreshJob thread
  |
  +--> Start Crow HTTP server
 ```
@@ -549,40 +547,32 @@ A connection pool may replace this arrangement later as the number of concurrent
 
 The bulk `/5m` endpoint is used for ongoing market collection.
 
-Individual timeseries endpoints are used primarily for historical backfilling.
+Historical timeseries endpoints are used for initial history population and recovery after collector downtime.
 
-For example:
-
-```text
-User requests Dragon axe history
-             |
-             v
-Do we have sufficient local history?
-        |               |
-       yes              no
-        |               |
-        v               v
- PostgreSQL      Wiki timeseries API
-                        |
-                        v
-                  historical backfill
-                        |
-                        v
-                    PostgreSQL
-```
-
-After an item has been backfilled, the continuous `/5m` collector extends its history.
-
-This produces:
+On startup, the backend checks the newest timestamp stored in `price_events`.
 
 ```text
-historical Wiki data
-        +
-locally collected data
-        |
-        v
-long-term local market history
+Backend starts
+      |
+      v
+Check MAX(price_events.timestamp)
+      |
+      +--> <= 10 minutes --> no recovery
+      |
+      +--> <= 24 hours --> recover using 24h history
+      |
+      +--> <= 7 days --> recover using 7d history
+      |
+      +--> > 7 days --> recover using 1y history
 ```
+
+When a gap is detected, `GapRecoveryJob` runs in the background so recovery does not block the HTTP server.
+
+Normal history requests are served from local PostgreSQL data and do not trigger per-item backfills.
+
+A separate `backfill-all` command is available for initial database population or a complete historical synchronization.
+
+After history has been populated, the continuous `/5m` collector extends it over time.
 
 ---
 
@@ -675,7 +665,8 @@ Item search:
 GET /api/items/search?q=dragon
 ```
 
-Historical requests are served from local PostgreSQL data. Recently viewed items can be queued for background backfill when local coverage is incomplete, and incomplete ranges are not cached as if they were fully synchronized.
+Historical requests are served entirely from local PostgreSQL data and do not trigger any backfill or background work.
+Historical recovery is handled independently by `GapRecoveryJob`, which checks for gaps when the backend starts.
 
 ---
 
@@ -724,16 +715,16 @@ docker compose exec postgres \
 
 Replace `6739` with the desired item ID.
 
-### Backfill history for all items
+### Full history synchronization
 
-Run the one-time full historical backfill:
+Run the one-time full historical backfill for all tracked items:
 
 ```bash
 docker compose run --rm backend \
   ./build/osrs-market-backend backfill-all
 ```
 
-The temporary backend container is removed after the command completes. PostgreSQL data is persisted separately and is not removed.
+The temporary backend container is removed after the command completes. PostgreSQL data is persisted separately and is not removed. Normal startup gap recovery does not require this command.
 
 ### Monitor full backfill progress
 
@@ -774,7 +765,7 @@ This project is primarily being developed to explore and practice:
 - Modern C++ application architecture
 - HTTP services in C++
 - Concurrent background workers
-- Producer/consumer job queues
+- Background recovery jobs
 - PostgreSQL from C++
 - Time-series market data
 - In-memory caching

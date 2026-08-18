@@ -58,6 +58,7 @@ add_executable(
     src/jobs/FiveMinutePriceRefreshJob.cpp
     src/jobs/PriceBackfillJob.cpp
     src/jobs/FullHistoryBackfillJob.cpp
+    src/jobs/GapRecoveryJob.cpp
 
     src/items/ItemFilter.cpp
     src/items/ItemRepository.cpp
@@ -67,8 +68,6 @@ add_executable(
     src/prices/PriceRepository.cpp
     src/prices/TimeseriesClient.cpp
     src/prices/BackfillPolicy.cpp
-    src/prices/BackfillManager.cpp
-    src/prices/ItemActivityTracker.cpp
     src/prices/PriceHistoryCache.cpp
 )
 
