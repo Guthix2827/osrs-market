@@ -7,8 +7,9 @@ The application collects item metadata and real-time Grand Exchange price data f
 The goal is to build a fast, self-contained market data service that does not require the frontend to depend directly on the upstream API.
 
 ## Screenshots
-
+[▶ Watch the 15-second item page demo](docs/video/item-page-desktop.mp4)
 ![OSRS Market item page](docs/screenshots/item-page-desktop.png)
+
 
 ## Project Status
 
@@ -39,6 +40,7 @@ Implemented:
 - Client-side history caching by range for fast chart switching
 - Periodic frontend history refresh
 - Docker development environment
+- Interactive chart zoom with synchronized price, volume, and trade distribution data
 
 Planned / next steps:
 
