@@ -255,15 +255,44 @@ int main(
     std::thread priceRefreshThread{
         [&priceRefreshJob]
         {
-            using namespace std::chrono_literals;
+            using namespace std::chrono;
 
             while (true)
             {
-                priceRefreshJob.execute();
+                const auto now =
+                    system_clock::now();
 
-                std::this_thread::sleep_for(
-                    5min
+                const auto currentMinute =
+                    duration_cast<minutes>(
+                        now.time_since_epoch()
+                    );
+
+                const auto nextFiveMinutes =
+                    ((currentMinute.count() / 5) + 1) * 5;
+
+                const auto nextRun =
+                    system_clock::time_point{
+                        minutes{
+                            nextFiveMinutes
+                        }
+                    } +
+                    seconds{10};
+
+                std::this_thread::sleep_until(
+                    nextRun
                 );
+
+                try
+                {
+                    priceRefreshJob.execute();
+                }
+                catch (const std::exception& e)
+                {
+                    Logger::error(
+                        "5m price refresh failed: ",
+                        e.what()
+                    );
+                }
             }
         }
     };
