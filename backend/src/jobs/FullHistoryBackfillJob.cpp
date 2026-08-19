@@ -35,6 +35,10 @@ void FullHistoryBackfillJob::run()
 
     for (const auto& item : items)
     {
+        //temporary fill item
+        //if (item.id != 31406)
+        //    continue;
+
         try
         {
             if (backfillPolicy_.needsLookback(
