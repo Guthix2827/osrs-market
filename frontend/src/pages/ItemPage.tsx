@@ -2,7 +2,6 @@ import {useEffect, useMemo, useState} from 'react';
 import './ItemPage.css';
 import type {ItemMetadata, ItemPrice, ItemStats, PricePoint} from "../types/item.ts";
 import {
-    getLatestPrice,
     itemService,
     type LatestPrice,
     PRICE_HISTORY_RANGES,
@@ -42,18 +41,19 @@ export default function ItemPage() {
 
     const [latestPrice, setLatestPrice] = useState<LatestPrice | null>(null);
 
-    useEffect(() => {
-        const loadLatestPrice = async () => {
-            try {
-                const latest = await getLatestPrice(itemId);
-                setLatestPrice(latest);
-            } catch (error) {
-                console.error("Failed to load latest price:", error);
-            }
-        };
+    //live last buy & sell
+    const [now, setNow] = useState(() => Date.now());
+    const [latestFetchedAt, setLatestFetchedAt] = useState(() => Date.now());
 
-        loadLatestPrice();
-    }, [id]);
+    useEffect(() => {
+        const interval = window.setInterval(() => {
+            setNow(Date.now());
+        }, 1_000);
+
+        return () => {
+            window.clearInterval(interval);
+        };
+    }, []);
 
     const [historyByRange, setHistoryByRange] =
         useState<
@@ -77,22 +77,29 @@ export default function ItemPage() {
         if (!Number.isInteger(itemId)) {
             return;
         }
-
+        const controller = new AbortController();
         itemService
-            .getItem(itemId)
+            .getItem(itemId, controller.signal)
             .then(setMetaItem)
-            .catch(console.error);
+            .catch((error) => {
+                if (
+                    error instanceof DOMException &&
+                    error.name === "AbortError"
+                ) {
+                    return;
+                }
+                console.error("Failed to load item", error);
+            });
+        return () => {
+            controller.abort();
+        };
     }, [itemId]);
 
+    const isRangeLoaded = historyByRange[range] !== undefined;
 
     // Load price history.
     useEffect(() => {
-        if (!Number.isInteger(itemId)) {
-            return;
-        }
-
-        // Already loaded this range.
-        if (historyByRange[range]) {
+        if (!Number.isInteger(itemId) || isRangeLoaded) {
             return;
         }
 
@@ -101,12 +108,10 @@ export default function ItemPage() {
 
         const loadHistory = async () => {
             try {
-                const data =
-                    await itemService.getPriceHistory(
-                        itemId,
-                        range,
-                        controller.signal,
-                    );
+                const [history, latestPrice] = await Promise.all([
+                    itemService.getPriceHistory(itemId, range, controller.signal),
+                    itemService.getLatestPrice(itemId, controller.signal)
+                ]);
 
                 if (controller.signal.aborted) {
                     return;
@@ -114,8 +119,10 @@ export default function ItemPage() {
 
                 setHistoryByRange((current) => ({
                     ...current,
-                    [range]: data,
+                    [range]: history,
                 }));
+                setLatestPrice(latestPrice);
+                setLatestFetchedAt(Date.now());
             } catch (error) {
                 if (
                     error instanceof DOMException &&
@@ -139,7 +146,7 @@ export default function ItemPage() {
     }, [
         itemId,
         range,
-        historyByRange,
+        isRangeLoaded,
     ]);
 
     useEffect(() => {
@@ -149,16 +156,18 @@ export default function ItemPage() {
 
         const refreshHistory = async () => {
             try {
-                const data =
-                    await itemService.getPriceHistory(
-                        itemId,
-                        range,
-                    );
+                const [history, latestPrice] = await Promise.all([
+                    itemService.getPriceHistory(itemId, range),
+                    itemService.getLatestPrice(itemId),
+                ]);
 
                 setHistoryByRange((current) => ({
                     ...current,
-                    [range]: data,
+                    [range]: history,
                 }));
+
+                setLatestPrice(latestPrice);
+                setLatestFetchedAt(Date.now());
             } catch (error) {
                 console.error(
                     "History refresh failed",
@@ -463,17 +472,28 @@ export default function ItemPage() {
                         </span>
 
                         <div className="price-value">
-                            {price.high !== null
-                                ? formatGp(price.high)
+                            {latestPrice?.high != null
+                                ? formatGp(latestPrice.high)
                                 : "—"}
                             <span>gp</span>
                         </div>
 
                         <span className="price-updated">
                             <i className="dot green"/>
-                            {latestPrice?.highTime
-                                ? formatLatestUpdatedAt(latestPrice.highTime)
-                                : "No recent trade"}
+                            <div>
+                                {latestPrice?.highTime ? (
+                                    <>
+                                        Updated{" "}
+                                        <span className="updated-time">
+                                            {formatLatestUpdatedAt(Math.floor(latestFetchedAt / 1000), now)?.value}
+                                            {formatLatestUpdatedAt(Math.floor(latestFetchedAt / 1000), now)?.unit}
+                                        </span>
+                                        {" "}ago
+                                    </>
+                                ) : (
+                                    "No recent trade"
+                                )}
+                            </div>
                         </span>
                     </div>
 
@@ -483,17 +503,28 @@ export default function ItemPage() {
                         </span>
 
                         <div className="price-value">
-                            {price.low !== null
-                                ? formatGp(price.low)
+                            {latestPrice?.low != null
+                                ? formatGp(latestPrice.low)
                                 : "—"}
                             <span>gp</span>
                         </div>
 
                         <span className="price-updated">
                             <i className="dot red"/>
-                            {latestPrice?.lowTime
-                                ? formatLatestUpdatedAt(latestPrice.lowTime)
-                                : "No recent trade"}
+                            <div>
+                                {latestPrice?.lowTime ? (
+                                    <>
+                                        Updated{" "}
+                                        <span className="updated-time">
+                                            {formatLatestUpdatedAt(Math.floor(latestFetchedAt / 1000), now)?.value}
+                                            {formatLatestUpdatedAt(Math.floor(latestFetchedAt / 1000), now)?.unit}
+                                        </span>
+                                        {" "}ago
+                                    </>
+                                ) : (
+                                    "No recent trade"
+                                )}
+                            </div>
                         </span>
                     </div>
 

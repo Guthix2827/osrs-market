@@ -444,27 +444,39 @@ function toDailyVolume(
     );
 }
 
-export function formatLatestUpdatedAt(timestamp: number | null | undefined): string {
+export function formatLatestUpdatedAt(
+    timestamp: number | null | undefined,
+    now: number
+): { value: string; unit: string } | null {
     if (!timestamp) {
-        return "No recent trade";
+        return null;
     }
 
     const seconds = Math.max(
         0,
-        Math.floor(Date.now() / 1000) - timestamp
+        Math.floor(now / 1000) - timestamp
     );
 
     if (seconds < 60) {
-        return `Updated ${seconds}s ago`;
+        return {
+            value: seconds.toString(),
+            unit: "s",
+        };
     }
 
     const minutes = Math.floor(seconds / 60);
 
     if (minutes < 60) {
-        return `Updated ${minutes}m ago`;
+        return {
+            value: minutes.toString(),
+            unit: "m",
+        };
     }
 
     const hours = Math.floor(minutes / 60);
 
-    return `Updated ${hours}h ago`;
+    return {
+        value: hours.toString(),
+        unit: "h",
+    };
 }

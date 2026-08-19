@@ -238,6 +238,10 @@
     font-size: 14px;
 }
 
+.updated-time {
+    width: 20px;
+}
+
 .price-divider {
     width: 1px;
     height: 115px;
