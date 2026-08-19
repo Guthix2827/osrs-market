@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+.git
+.env*
+Dockerfile.dev
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
