@@ -1,11 +1,17 @@
 import {useEffect, useMemo, useState} from 'react';
 import './ItemPage.css';
 import type {ItemMetadata, ItemPrice, ItemStats, PricePoint} from "../types/item.ts";
-import {itemService, PRICE_HISTORY_RANGES, type PriceHistoryRange} from "../services/itemService";
+import {
+    getLatestPrice,
+    itemService,
+    type LatestPrice,
+    PRICE_HISTORY_RANGES,
+    type PriceHistoryRange
+} from "../services/itemService";
 import {PriceHistoryChart, VolumeChart} from "../components/PriceHistoryChart.tsx";
 import {MarketOverview} from "../components/MarketOverview.tsx";
 import { useParams } from "react-router-dom";
-import {normalizePriceHistory, normalizeVolumeHistory} from "../utils/priceHistory.ts";
+import {formatLatestUpdatedAt, normalizePriceHistory, normalizeVolumeHistory} from "../utils/priceHistory.ts";
 import {calculateGeTax} from "../utils/ge.ts";
 
 function formatGp(value: number) {
@@ -33,6 +39,21 @@ export default function ItemPage() {
         setZoomStart(null);
         setZoomEnd(null);
     };
+
+    const [latestPrice, setLatestPrice] = useState<LatestPrice | null>(null);
+
+    useEffect(() => {
+        const loadLatestPrice = async () => {
+            try {
+                const latest = await getLatestPrice(itemId);
+                setLatestPrice(latest);
+            } catch (error) {
+                console.error("Failed to load latest price:", error);
+            }
+        };
+
+        loadLatestPrice();
+    }, [id]);
 
     const [historyByRange, setHistoryByRange] =
         useState<
@@ -450,7 +471,9 @@ export default function ItemPage() {
 
                         <span className="price-updated">
                             <i className="dot green"/>
-                            Updated 12s ago
+                            {latestPrice?.highTime
+                                ? formatLatestUpdatedAt(latestPrice.highTime)
+                                : "No recent trade"}
                         </span>
                     </div>
 
@@ -468,7 +491,9 @@ export default function ItemPage() {
 
                         <span className="price-updated">
                             <i className="dot red"/>
-                            Updated 18s ago
+                            {latestPrice?.lowTime
+                                ? formatLatestUpdatedAt(latestPrice.lowTime)
+                                : "No recent trade"}
                         </span>
                     </div>
 

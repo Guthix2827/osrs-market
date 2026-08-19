@@ -443,3 +443,28 @@ function toDailyVolume(
         (a, b) => a.timestamp - b.timestamp,
     );
 }
+
+export function formatLatestUpdatedAt(timestamp: number | null | undefined): string {
+    if (!timestamp) {
+        return "No recent trade";
+    }
+
+    const seconds = Math.max(
+        0,
+        Math.floor(Date.now() / 1000) - timestamp
+    );
+
+    if (seconds < 60) {
+        return `Updated ${seconds}s ago`;
+    }
+
+    const minutes = Math.floor(seconds / 60);
+
+    if (minutes < 60) {
+        return `Updated ${minutes}m ago`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+
+    return `Updated ${hours}h ago`;
+}
