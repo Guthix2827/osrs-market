@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PricePoint.hpp"
+#include "HistoryRange.hpp"
 
 #include <cstdint>
 #include <cstddef>
@@ -26,7 +27,8 @@ public:
     std::vector<PricePoint> findHistory(
         std::int32_t itemId,
         std::int64_t fromTimestamp,
-        std::int64_t toTimestamp
+        std::int64_t toTimestamp,
+        HistoryRange range
     );
 
     [[nodiscard]]

@@ -154,35 +154,137 @@ std::vector<PricePoint>
 PriceRepository::findHistory(
     std::int32_t itemId,
     std::int64_t fromTimestamp,
-    std::int64_t toTimestamp
+    std::int64_t toTimestamp,
+    HistoryRange range
 )
 {
     pqxx::work transaction{
         database_.connection()
     };
 
-    const auto result =
-        transaction.exec(
-            R"(
-                SELECT
-                    item_id,
-                    timestamp,
-                    avg_high_price,
-                    avg_low_price,
-                    high_price_volume,
-                    low_price_volume
-                FROM price_events
-                WHERE item_id = $1
-                  AND timestamp >= $2
-                  AND timestamp <= $3
-                ORDER BY timestamp ASC
-            )",
-            pqxx::params{
-                itemId,
-                fromTimestamp,
-                toTimestamp
-            }
-        );
+    pqxx::result result;
+
+    switch (range)
+    {
+        case HistoryRange::Hours24:
+            result = transaction.exec(
+                R"(
+                    SELECT
+                        item_id,
+                        timestamp,
+                        avg_high_price,
+                        avg_low_price,
+                        high_price_volume,
+                        low_price_volume
+                    FROM price_events
+                    WHERE item_id = $1
+                      AND timestamp >= $2
+                      AND timestamp <= $3
+                    ORDER BY timestamp ASC
+                )",
+                pqxx::params{
+                    itemId,
+                    fromTimestamp,
+                    toTimestamp
+                }
+            );
+            break;
+
+        case HistoryRange::Days7:
+            result = transaction.exec(
+                R"(
+                    SELECT
+                        item_id,
+
+                        EXTRACT(
+                            EPOCH FROM date_trunc(
+                                'hour',
+                                to_timestamp(timestamp)
+                            )
+                        )::BIGINT AS timestamp,
+
+                        ROUND(AVG(avg_high_price))::BIGINT
+                            AS avg_high_price,
+
+                        ROUND(AVG(avg_low_price))::BIGINT
+                            AS avg_low_price,
+
+                        SUM(high_price_volume)::BIGINT
+                            AS high_price_volume,
+
+                        SUM(low_price_volume)::BIGINT
+                            AS low_price_volume
+
+                    FROM price_events
+                    WHERE item_id = $1
+                      AND timestamp >= $2
+                      AND timestamp <= $3
+
+                    GROUP BY
+                        item_id,
+                        date_trunc(
+                            'hour',
+                            to_timestamp(timestamp)
+                        )
+
+                    ORDER BY timestamp ASC
+                )",
+                pqxx::params{
+                    itemId,
+                    fromTimestamp,
+                    toTimestamp
+                }
+            );
+            break;
+
+        case HistoryRange::Month1:
+        case HistoryRange::Year1:
+            result = transaction.exec(
+                R"(
+                    SELECT
+                        item_id,
+
+                        EXTRACT(
+                            EPOCH FROM date_trunc(
+                                'day',
+                                to_timestamp(timestamp)
+                            )
+                        )::BIGINT AS timestamp,
+
+                        MAX(avg_high_price)::BIGINT
+                            AS avg_high_price,
+
+                        MIN(avg_low_price)::BIGINT
+                            AS avg_low_price,
+
+                        SUM(high_price_volume)::BIGINT
+                            AS high_price_volume,
+
+                        SUM(low_price_volume)::BIGINT
+                            AS low_price_volume
+
+                    FROM price_events
+                    WHERE item_id = $1
+                      AND timestamp >= $2
+                      AND timestamp <= $3
+
+                    GROUP BY
+                        item_id,
+                        date_trunc(
+                            'day',
+                            to_timestamp(timestamp)
+                        )
+
+                    ORDER BY timestamp ASC
+                )",
+                pqxx::params{
+                    itemId,
+                    fromTimestamp,
+                    toTimestamp
+                }
+            );
+            break;
+    }
 
     std::vector<PricePoint> points;
     points.reserve(result.size());
@@ -417,18 +519,20 @@ PriceRepository::findLatestTimestamp()
         database_.connection()
     };
 
-    const auto result =
-        tx.exec1(
+    const auto row =
+        tx.exec(
             R"(
                 SELECT MAX(timestamp)
                 FROM price_events
             )"
-        );
+        ).one_row();
 
-    if (result[0].is_null())
+    tx.commit();
+
+    if (row[0].is_null())
     {
         return std::nullopt;
     }
 
-    return result[0].as<std::int64_t>();
+    return row[0].as<std::int64_t>();
 }
