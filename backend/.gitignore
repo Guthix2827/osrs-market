@@ -1,0 +1,9 @@
+build
+.git
+.env*
+data
+Dockerfile.dev
+
+# Core dumps
+core
+core.*
