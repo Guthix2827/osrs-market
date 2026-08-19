@@ -5,6 +5,10 @@ import {dragonAxe, dragonAxePrice, dragonAxeStats} from "../mocks/items";
 const API_BASE_URL =
     import.meta.env.VITE_API_URL ?? "http://localhost:8081";
 
+const WIKI_PRICES_API =
+    import.meta.env.VITE_PRICES_API_URL ??
+    "https://prices.runescape.wiki/api/v2/osrs";
+
 export const PRICE_HISTORY_RANGES = [
     "24H",
     "7D",
@@ -129,10 +133,34 @@ export async function searchItems(
     return json.data;
 }
 
+export interface LatestPrice {
+    high: number | null;
+    highTime: number | null;
+    low: number | null;
+    lowTime: number | null;
+}
+
+interface LatestPricesResponse {
+    data: Record<string, LatestPrice>;
+}
+
+export async function getLatestPrice(id: number): Promise<LatestPrice | null> {
+    const response = await fetch(`${WIKI_PRICES_API}/latest`);
+
+    if (!response.ok) {
+        throw new Error("Failed to fetch latest price");
+    }
+
+    const result: LatestPricesResponse = await response.json();
+
+    return result.data[String(id)] ?? null;
+}
+
 
 export const itemService = {
     getItem,
     getItemMock,
     getPriceHistory,
-    searchItems
+    searchItems,
+    getLatestPrice
 };
