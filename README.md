@@ -48,6 +48,7 @@ Planned / next steps:
 - Watchlists and user accounts
 - Share functionality
 - Additional market statistics and aggregation
+- WebSocket live price updates for actively viewed items (instant buy / sell)
 - Production Docker image
 - Reverse proxy / production deployment
 - Further frontend and backend performance hardening

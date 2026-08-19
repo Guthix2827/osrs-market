@@ -64,17 +64,14 @@ export async function getStatsMock(
 
 export async function getItem(
     id: number,
+    signal?: AbortSignal
 ): Promise<ItemMetadata> {
-    const response = await fetch(
-        `${API_BASE_URL}/api/items/${id}`,
-    );
-
+    const response = await fetch(`${API_BASE_URL}/api/items/${id}`, {signal});
     if (!response.ok) {
         throw new Error(
             `Failed to fetch item (${response.status})`,
         );
     }
-
     return await response.json() as ItemMetadata;
 }
 
@@ -144,8 +141,8 @@ interface LatestPricesResponse {
     data: Record<string, LatestPrice>;
 }
 
-export async function getLatestPrice(id: number): Promise<LatestPrice | null> {
-    const response = await fetch(`${WIKI_PRICES_API}/latest`);
+export async function getLatestPrice(id: number, signal?: AbortSignal): Promise<LatestPrice | null> {
+    const response = await fetch(`${WIKI_PRICES_API}/latest`, {signal});
 
     if (!response.ok) {
         throw new Error("Failed to fetch latest price");
