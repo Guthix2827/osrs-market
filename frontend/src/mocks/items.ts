@@ -28,6 +28,7 @@ export const dragonAxePrice: ItemPrice = {
 
 export const dragonAxeStats: ItemStats = {
     margin: 5147,
+    netMargin: 5000,
     potentialProfit: 205880,
     roi: 7.12,
     dailyVolume: 1815,

@@ -22,6 +22,7 @@
 #include "prices/TimeseriesClient.hpp"
 #include "prices/BackfillPolicy.hpp"
 #include "prices/PriceHistoryCache.hpp"
+#include "prices/HistoryRange.hpp"
 
 #include <crow.h>
 #include <crow/middlewares/cors.h>
@@ -453,37 +454,21 @@ int main(
         const std::string range{
             rangeParam
         };
-
-        std::int64_t rangeSeconds = 0;
-
-        if (range == "24h")
-        {
-            rangeSeconds =
-                24LL * 60 * 60;
-        }
-        else if (range == "7d")
-        {
-            rangeSeconds =
-                7LL * 24 * 60 * 60;
-        }
-        else if (range == "30d")
-        {
-            rangeSeconds =
-                30LL * 24 * 60 * 60;
-        }
-        else if (range == "1y")
-        {
-            rangeSeconds =
-                365LL * 24 * 60 * 60;
-        }
-        else
+        const auto rangeConfig = parseHistoryRange(range);
+        if (!rangeConfig)
         {
             return crow::response{
                 400,
                 "application/json",
-                R"({"error":"Unsupported range"})"
+                R"({"error":"Invalid range parameter"})"
             };
         }
+
+        const auto rangeSeconds =
+            rangeConfig->seconds;
+
+        const auto historyRange =
+            rangeConfig->range;
 
 
         //
@@ -583,7 +568,8 @@ int main(
             historyRepository.findHistory(
                 itemId,
                 fromTimestamp,
-                toTimestamp
+                toTimestamp,
+                historyRange
             );
         
         const bool hasCoverage =
