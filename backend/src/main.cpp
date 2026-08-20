@@ -315,6 +315,9 @@ int main(
         .global()
         .origin("*");
 
+    //silent log
+    app.loglevel(crow::LogLevel::Warning);
+
     CROW_ROUTE(app, "/api/health")
     ([] {
         return crow::response{
