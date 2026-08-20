@@ -1294,3 +1294,72 @@
 .price-chart.is-selecting {
     user-select: none;
 }
+
+.section-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.zoom-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    padding: 4px 7px;
+
+    border: 1px solid var(--border);
+    border-radius: 4px;
+
+    background: var(--surface-2);
+    color: var(--text-primary);
+
+    font-size: 11px;
+    line-height: 1;
+}
+
+.zoom-filter-label {
+    color: var(--accent);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+.volume-tooltip-total {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.volume-tooltip {
+    background: #141714;
+    border: 1px solid #35342d;
+    border-radius: 4px;
+
+    padding: 10px 12px;
+
+    color: #e9e2d5;
+    line-height: 1.5;
+
+    white-space: nowrap;
+}
+
+.volume-tooltip-buy {
+    color: var(--positive);
+}
+
+.volume-tooltip-sell {
+    color: var(--negative);
+}
+
+.volume-tooltip-total {
+    margin-top: 5px;
+    padding-top: 5px;
+
+    border-top: 1px solid #35342d;
+
+    color: #e9e2d5;
+}

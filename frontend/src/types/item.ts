@@ -40,6 +40,12 @@ export interface PricePoint {
     lowPriceVolume: number;
 }
 
+export interface VolumeChartPoint {
+    timestamp: number;
+    highPriceVolume: number;
+    lowPriceVolume: number;
+}
+
 export interface ItemSearchResult {
     id: number;
     name: string;

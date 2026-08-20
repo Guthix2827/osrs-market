@@ -7,10 +7,15 @@ import {
     PRICE_HISTORY_RANGES,
     type PriceHistoryRange
 } from "../services/itemService";
-import {PriceHistoryChart, VolumeChart} from "../components/PriceHistoryChart.tsx";
+import {PriceHistoryChart, VolumeChart, type ZoomRangeType} from "../components/PriceHistoryChart.tsx";
 import {MarketOverview} from "../components/MarketOverview.tsx";
 import { useParams } from "react-router-dom";
-import {formatLatestUpdatedAt, normalizePriceHistory, normalizeVolumeHistory} from "../utils/priceHistory.ts";
+import {
+    formatLatestUpdatedAt,
+    formatZoomRange,
+    normalizePriceHistory,
+    normalizeVolumeHistory
+} from "../utils/priceHistory.ts";
 import {calculateGeTax} from "../utils/ge.ts";
 
 function formatGp(value: number) {
@@ -28,16 +33,7 @@ export default function ItemPage() {
     const [range, setRange] =
         useState<PriceHistoryRange>("24H");
 
-    const [zoomStart, setZoomStart] =
-        useState<number | null>(null);
-
-    const [zoomEnd, setZoomEnd] =
-        useState<number | null>(null);
-
-    const resetZoom = () => {
-        setZoomStart(null);
-        setZoomEnd(null);
-    };
+    const [zoomRange, setZoomRange] = useState<ZoomRangeType>(null);
 
     const [latestPrice, setLatestPrice] = useState<LatestPrice | null>(null);
 
@@ -70,6 +66,7 @@ export default function ItemPage() {
 
     useEffect(() => {
         setHistoryByRange({});
+        setZoomRange(null);
     }, [itemId]);
 
     // Load item metadata.
@@ -297,7 +294,7 @@ export default function ItemPage() {
             );
     }, [history]);
 
-    const chartHistory = useMemo(
+    const pricesChartHistory = useMemo(
         () =>
             normalizePriceHistory(
                 history,
@@ -306,7 +303,22 @@ export default function ItemPage() {
         [history, range],
     );
 
-    const volumeHistory = useMemo(
+    const visiblePriceHistory = useMemo(() => {
+        if (zoomRange === null) {
+            return pricesChartHistory;
+        }
+
+        return pricesChartHistory.filter(
+            (point) =>
+                point.timestamp >= zoomRange.start &&
+                point.timestamp <= zoomRange.end,
+        );
+    }, [
+        pricesChartHistory,
+        zoomRange,
+    ]);
+
+    const volumeChartHistory = useMemo(
         () =>
             normalizeVolumeHistory(
                 history,
@@ -315,66 +327,19 @@ export default function ItemPage() {
         [history, range],
     );
 
-    const visiblePriceHistory = useMemo(() => {
-        if (
-            zoomStart === null ||
-            zoomEnd === null
-        ) {
-            return chartHistory;
-        }
-
-        const min =
-            Math.min(
-                zoomStart,
-                zoomEnd,
-            );
-
-        const max =
-            Math.max(
-                zoomStart,
-                zoomEnd,
-            );
-
-        return chartHistory.filter(
-            (point) =>
-                point.timestamp >= min &&
-                point.timestamp <= max,
-        );
-    }, [
-        chartHistory,
-        zoomStart,
-        zoomEnd,
-    ]);
-
     const visibleVolumeHistory = useMemo(() => {
-        if (
-            zoomStart === null ||
-            zoomEnd === null
-        ) {
-            return volumeHistory;
+        if (zoomRange === null) {
+            return volumeChartHistory;
         }
 
-        const min =
-            Math.min(
-                zoomStart,
-                zoomEnd,
-            );
-
-        const max =
-            Math.max(
-                zoomStart,
-                zoomEnd,
-            );
-
-        return volumeHistory.filter(
+        return volumeChartHistory.filter(
             (point) =>
-                point.timestamp >= min &&
-                point.timestamp <= max,
+                point.timestamp >= zoomRange.start &&
+                point.timestamp <= zoomRange.end,
         );
     }, [
-        volumeHistory,
-        zoomStart,
-        zoomEnd,
+        volumeChartHistory,
+        zoomRange,
     ]);
 
     const tradeDistribution = useMemo(() => {
@@ -619,16 +584,15 @@ export default function ItemPage() {
                         <div className="chart-toolbar">
                             <h2>Price history</h2>
 
-                            {zoomStart !== null &&
-                                zoomEnd !== null && (
-                                    <button
-                                        type="button"
-                                        className="reset-zoom-button"
-                                        onClick={resetZoom}
-                                    >
-                                        Reset zoom
-                                    </button>
-                                )}
+                            {zoomRange && (
+                                <button
+                                    type="button"
+                                    className="reset-zoom-button"
+                                    onClick={() => setZoomRange(null)}
+                                >
+                                    Reset zoom
+                                </button>
+                            )}
 
                             <div className="range-toggle">
                                 {PRICE_HISTORY_RANGES.map((option) => (
@@ -638,6 +602,7 @@ export default function ItemPage() {
                                         className={range === option ? 'active' : ''}
                                         onClick={() => {
                                             setRange(option);
+                                            setZoomRange(null);
                                         }}
                                     >
                                         {option}
@@ -650,11 +615,7 @@ export default function ItemPage() {
                             <PriceHistoryChart
                                 data={visiblePriceHistory}
                                 range={range}
-                                onZoomChange={(start, end) => {
-                                    setZoomStart(start);
-                                    setZoomEnd(end);
-                                }}
-                                onResetZoom={resetZoom}
+                                onZoomChange={setZoomRange}
                             />
                         </div>
 
@@ -664,20 +625,27 @@ export default function ItemPage() {
                             <VolumeChart
                                 data={visibleVolumeHistory}
                                 range={range}
+                                zoomRange={zoomRange}
                             />
                         </div>
                     </section>
 
                     <aside className="sidebar">
                         <section className="side-card">
-                            <h2>
-                                Bought vs Sold (
-                                {zoomStart !== null &&
-                                zoomEnd !== null
-                                    ? "Zoom"
-                                    : range}
-                                )
-                            </h2>
+                            <div className="section-title-row">
+                                <h2>
+                                    Bought vs Sold ({range})
+                                </h2>
+
+                                {zoomRange && (
+                                    <span className="zoom-filter-badge">
+                                        <span className="zoom-filter-label">
+                                            ZOOM
+                                        </span>
+                                        {formatZoomRange(zoomRange, range)}
+                                    </span>
+                                )}
+                            </div>
 
                             <div className="trade-distribution">
                                 <div
