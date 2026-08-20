@@ -629,19 +629,114 @@ The production stack runs as:
 ```text
 Browser
   |
+  | HTTPS (public domain)
   v
-Frontend (Nginx :80)
+Reverse Proxy (optional)
+  |  TLS termination / domain routing
   |
+  | HTTP -> frontend exposed port
   v
-Backend (Crow :8080)
+Frontend Container
+  |  Nginx :80
+  |  - serves React static files
+  |  - proxies /api/* and /icons/* to backend
   |
+  | Docker internal network
   v
-PostgreSQL (:5432)
+Backend Container
+  |  Crow :8080
+  |
+  | Docker internal network
+  v
+PostgreSQL Container
+     PostgreSQL :5432
 ```
+
+The reverse proxy is optional. Without one, expose the frontend service directly through a host port in `docker-compose.prod.yml`.
+
+The backend and PostgreSQL services do not need to be publicly exposed; communication between the frontend, backend, and database occurs over the internal Docker Compose network.
 
 Docker health checks are configured for PostgreSQL, the backend API, and the frontend. The frontend waits for the backend to become healthy, while the backend waits for PostgreSQL.
 
 On a fresh PostgreSQL volume, SQL files from `backend/sql` are mounted into `/docker-entrypoint-initdb.d` and executed automatically during first-time database initialization. Existing initialized volumes are left unchanged.
+
+## Development
+
+### Build
+
+```bash
+docker compose -f docker-compose.dev.yml build
+```
+
+### Start existing containers
+
+```bash
+docker compose -f docker-compose.dev.yml start
+```
+
+### Stop containers
+
+```bash
+docker compose -f docker-compose.dev.yml stop
+```
+
+### Create and start
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+### Build and start
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+### Stop and remove containers
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+### Status
+
+```bash
+docker compose -f docker-compose.dev.yml ps
+```
+
+### Backend logs
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f backend
+```
+
+### Frontend logs
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f frontend
+```
+
+### PostgreSQL logs
+
+```bash
+docker compose -f docker-compose.dev.yml logs -f postgres
+```
+
+### Rebuild C++ backend inside running container
+
+```bash
+docker compose -f docker-compose.dev.yml exec backend cmake --build build
+```
+
+### Restart backend
+
+```bash
+docker compose -f docker-compose.dev.yml restart backend
+```
+
+---
+
+## Production
 
 ### Build
 
