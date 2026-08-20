@@ -17,21 +17,29 @@ import {
     normalizeVolumeHistory
 } from "../utils/priceHistory.ts";
 import {calculateGeTax} from "../utils/ge.ts";
+import {useWatchlist} from "../components/watchlist/WatchlistContext.tsx";
+import {API_BASE_URL} from "../config/api.ts";
+import {watchlistService} from "../services/watchlistService.ts";
 
 function formatGp(value: number) {
     return new Intl.NumberFormat('en-US').format(value);
 }
 
 export default function ItemPage() {
+
+    const {
+        addItem,
+        removeItem,
+        isWatched,
+    } = useWatchlist();
+
     const { id } = useParams();
 
     const itemId = Number(id);
 
-    const [metaItem, setMetaItem] =
-        useState<ItemMetadata | null>(null);
+    const [metaItem, setMetaItem] = useState<ItemMetadata | null>(null);
 
-    const [range, setRange] =
-        useState<PriceHistoryRange>("24H");
+    const [range, setRange] = useState<PriceHistoryRange>("24H");
 
     const [zoomRange, setZoomRange] = useState<ZoomRangeType>(null);
 
@@ -91,6 +99,8 @@ export default function ItemPage() {
             controller.abort();
         };
     }, [itemId]);
+
+    const watched = metaItem !== null && isWatched(metaItem.id);
 
     const isRangeLoaded = historyByRange[range] !== undefined;
 
@@ -374,6 +384,38 @@ export default function ItemPage() {
         };
     }, [visibleVolumeHistory]);
 
+    const handleWatch = async () => {
+        if (!metaItem) {
+            return;
+        }
+
+        const currentPrice =
+            latestPrice?.high ??
+            latestPrice?.low ??
+            null;
+
+        try {
+            const summary =
+                await watchlistService.getWatchSummary(
+                    metaItem.id,
+                );
+
+            addItem({
+                id: metaItem.id,
+                name: metaItem.name,
+                icon: metaItem.icon,
+                price: currentPrice,
+                summary,
+                changeRange: "30m",
+            });
+        } catch (error) {
+            console.error(
+                "Failed to add item to watchlist",
+                error,
+            );
+        }
+    };
+
     //Debug data return for performance enhance
     // useEffect(() => {
     //     console.log("Chart data:", {
@@ -411,7 +453,7 @@ export default function ItemPage() {
                     <div className="item-identity">
                         <div className="item-icon-frame">
                             <img
-                                src={`${import.meta.env.VITE_API_URL}${metaItem.icon}`}
+                                src={`${API_BASE_URL}${metaItem.icon}`}
                                 alt={metaItem.name}
                             />
                         </div>
@@ -496,10 +538,27 @@ export default function ItemPage() {
                     <div className="hero-actions">
                         <button
                             type="button"
-                            disabled
-                            title="Under development"
+                            className={
+                                watched
+                                    ? "watch-button watched"
+                                    : "watch-button"
+                            }
+                            onClick={() => {
+                                if (!metaItem) {
+                                    return;
+                                }
+
+                                if (watched) {
+                                    removeItem(metaItem.id);
+                                    return;
+                                }
+
+                                void handleWatch();
+                            }}
                         >
-                            Watch
+                            {watched
+                                ? "Watched"
+                                : "Watch"}
                         </button>
 
                         <button
@@ -818,10 +877,7 @@ function DistributionRow({
         </div>
     );
 }
-function Detail({
-                    label,
-                    value,
-                }: {
+function Detail({label, value}: {
     label: string;
     value: string;
 }) {

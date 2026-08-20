@@ -13,6 +13,7 @@ import type {
 import {
     itemService,
 } from "../services/itemService";
+import {API_BASE_URL} from "../config/api.ts";
 
 
 export function ItemSearch() {
@@ -150,7 +151,7 @@ export function ItemSearch() {
                             >
                                 <div className="search-result-icon">
                                     <img
-                                        src={`${import.meta.env.VITE_API_URL}${item.icon}`}
+                                        src={`${API_BASE_URL}${item.icon}`}
                                         alt={item.name}
                                     />
                                 </div>

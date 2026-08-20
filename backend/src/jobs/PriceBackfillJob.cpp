@@ -2,7 +2,7 @@
 
 #include "../prices/PriceRepository.hpp"
 #include "../prices/TimeseriesClient.hpp"
-#include "../prices/PriceHistoryCache.hpp"
+#include "../cache/PriceHistoryCache.hpp"
 #include "../utils/Logger.hpp"
 
 #include <exception>

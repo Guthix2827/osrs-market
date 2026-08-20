@@ -62,19 +62,22 @@ add_executable(
 
     src/items/ItemFilter.cpp
     src/items/ItemRepository.cpp
+    src/items/WatchSummary.cpp
     
     src/prices/FiveMinutePriceClient.cpp
     src/prices/LatestPriceStore.cpp
     src/prices/PriceRepository.cpp
     src/prices/TimeseriesClient.cpp
     src/prices/BackfillPolicy.cpp
-    src/prices/PriceHistoryCache.cpp
+
+    src/cache/PriceHistoryCache.cpp
 )
 
 target_include_directories(
     osrs-market-backend
     PRIVATE
         ${PQXX_INCLUDE_DIRS}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_directories(

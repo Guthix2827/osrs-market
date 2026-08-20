@@ -43,11 +43,14 @@ Implemented:
 - Production Docker Compose stack with Nginx frontend proxy and service health checks
 - PostgreSQL first-run schema initialization from `backend/sql`
 - Interactive chart zoom with synchronized price, volume, and trade distribution data
+- Persistent client-side watchlist with slide-out drawer, drag-and-drop ordering, and per-item range selection
+- Watchlist price-change summaries for 30m, 1h, 6h, 12h, and 24h ranges
+- Watch-summary API backed by the shared `PriceHistoryCache`
+- Per-item watchlist summary refresh scheduling with localStorage persistence
 
 Planned / next steps:
 
 - Movers and volume discovery pages
-- Watchlists and user accounts
 - Share functionality
 - Additional market statistics and aggregation
 - WebSocket live price updates for actively viewed items (instant buy / sell)
@@ -590,6 +593,54 @@ Real-time WebSocket delivery is not currently required; the existing periodic re
 
 ---
 
+---
+
+# Watchlist
+
+The frontend includes a persistent watchlist drawer for quick access to frequently viewed items.
+
+Each watched item stores lightweight client-side state, including the selected comparison range and the most recent watch-summary response. The list is persisted in `localStorage`, so item order, selected ranges, and cached summaries survive page refreshes.
+
+Supported comparison ranges:
+
+```text
+30m
+1h
+6h
+12h
+24h
+```
+
+The percentage shown in the drawer compares the current item price with the historical reference price for the selected range.
+
+Watch-summary data is served by the backend using the existing 24-hour `PriceHistoryCache`. On a cache hit, no PostgreSQL history query is required. On a cache miss, the backend loads the 24-hour history from PostgreSQL, stores it in the shared cache when coverage is complete, and derives the closest available reference prices for the supported ranges.
+
+Conceptually:
+
+```text
+Watch item
+   |
+   v
+GET /api/items/<id>/watch-summary
+   |
+   v
+PriceHistoryCache (24h)
+   |
+   +-- hit  --> derive reference prices
+   |
+   +-- miss --> PostgreSQL --> cache --> derive reference prices
+   |
+   v
+30m / 1h / 6h / 12h / 24h references
+   |
+   v
+React watchlist drawer
+```
+
+The client refresh scheduler tracks freshness per watched item. Rather than polling the entire list continuously, it schedules a single timeout for the closest next refresh time and only updates items whose summaries are stale. Returning to a previously backgrounded browser tab also triggers a stale-item check.
+
+---
+
 # Development
 
 Start the development environment:
@@ -838,6 +889,30 @@ Item search:
 ```text
 GET /api/items/search?q=dragon
 ```
+
+Watchlist price-change summary:
+
+```text
+GET /api/items/6739/watch-summary
+```
+
+Example response:
+
+```json
+{
+    "itemId": 6739,
+    "generatedAt": 1787262696,
+    "references": {
+        "30m": 6852761,
+        "1h": 6951140,
+        "6h": 6970347,
+        "12h": 6875915,
+        "24h": 6767910
+    }
+}
+```
+
+The values are historical reference prices derived from the closest available points in the cached 24-hour history. The frontend calculates the displayed percentage change against the current item price.
 
 Historical requests are served entirely from local PostgreSQL data and do not trigger any backfill or background work.
 Historical recovery is handled independently by `GapRecoveryJob`, which checks for gaps when the backend starts.
