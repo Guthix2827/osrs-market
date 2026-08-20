@@ -6,6 +6,8 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     git \
     meson \
+    pkg-config \
+    libpqxx-dev \
     libssl-dev \
     libasio-dev \
     ca-certificates \
@@ -29,6 +31,8 @@ FROM debian:13-slim
 RUN apt-get update && apt-get install -y \
     ca-certificates \
     libssl3t64 \
+    libpqxx-7.10 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
