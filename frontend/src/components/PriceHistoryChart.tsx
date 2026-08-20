@@ -3,23 +3,17 @@ import {
     BarChart,
     CartesianGrid,
     Line,
-    LineChart, ReferenceArea,
+    LineChart, ReferenceArea, ReferenceLine,
     ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
 } from 'recharts';
 import {memo, useMemo, useState} from "react";
+import type {PricePoint, VolumeChartPoint} from "../types/item.ts";
+import type {PriceHistoryRange} from "../services/itemService.ts";
 
-interface PricePoint {
-    timestamp: number;
-    avgHighPrice: number | null;
-    avgLowPrice: number | null;
-    highPriceVolume: number;
-    lowPriceVolume: number;
-}
-
-function getDailyTicks(data: PricePoint[]): number[] {
+function getDailyTicks(data: PricePoint[] | VolumeChartPoint[]): number[] {
     return data
         .filter((point, index, points) => {
             if (index === 0) {
@@ -35,7 +29,63 @@ function getDailyTicks(data: PricePoint[]): number[] {
         .slice(-7);
 }
 
-const bucketSeconds = (range: string) => {
+function VolumeTimeAxisTick({
+                                x,
+                                y,
+                                payload,
+                                range,
+                            }: {
+    x?: number;
+    y?: number;
+    payload?: {
+        value: number;
+    };
+    range: PriceHistoryRange;
+}) {
+    if (
+        x === undefined ||
+        y === undefined ||
+        !payload
+    ) {
+        return null;
+    }
+
+    const date =
+        new Date(payload.value * 1000);
+
+    const label =
+        range === "24H"
+            ? date.toLocaleTimeString(
+                "en-GB",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                },
+            )
+            : date.toLocaleDateString(
+                "en-GB",
+                {
+                    day: "numeric",
+                    month: "short",
+                },
+            );
+
+    return (
+        <g transform={`translate(${x},${y})`}>
+            <text
+                textAnchor="middle"
+                fill="#aaa69d"
+                fontSize={11}
+            >
+                <tspan x="0" dy="15">
+                    {label}
+                </tspan>
+            </text>
+        </g>
+    );
+}
+
+const bucketSeconds = (range: PriceHistoryRange) => {
     return range === "24H"
         ? 5 * 60
         : range === "7D"
@@ -45,7 +95,7 @@ const bucketSeconds = (range: string) => {
 
 const formatTooltipTimestamp = (
     timestamp: number,
-    range: string,
+    range: PriceHistoryRange,
 ) => {
     const start =
         new Date(timestamp * 1000);
@@ -98,34 +148,71 @@ const formatTooltipTimestamp = (
     return `${date}, ${startTime}–${endTime}`;
 };
 
+function getVolumeRoundStep(
+    volume: number,
+): number {
+    if (volume < 100) {
+        return 10;
+    }
+
+    if (volume < 1_000) {
+        return 100;
+    }
+
+    if (volume < 10_000) {
+        return 500;
+    }
+
+    if (volume < 100_000) {
+        return 5_000;
+    }
+
+    if (volume < 1_000_000) {
+        return 50_000;
+    }
+
+    return 500_000;
+}
+
 export const VolumeChart =
-    memo(function VolumeChart({data, range,}: {
-        data: PricePoint[];
-        range: string;
+    memo(function VolumeChart({data, range, zoomRange}: {
+        data: VolumeChartPoint[];
+        range: PriceHistoryRange;
+        zoomRange: ZoomRangeType;
     }) {
 
         const chartData = useMemo(
             () =>
                 data.map((point) => ({
                     ...point,
-                    totalVolume:
-                        point.highPriceVolume +
-                        point.lowPriceVolume,
+                    lowPriceVolume:
+                        -point.lowPriceVolume,
                 })),
             [data],
         );
 
         const maxVolume = useMemo(
             () =>
-                Math.max(
-                    ...chartData.map(
-                        (point) =>
-                            point.totalVolume,
-                    ),
+                data.reduce(
+                    (max, point) =>
+                        Math.max(
+                            max,
+                            point.highPriceVolume,
+                            point.lowPriceVolume,
+                        ),
                     0,
                 ),
-            [chartData],
+            [data],
         );
+
+        const volumeStep =
+            getVolumeRoundStep(maxVolume);
+
+        const volumeDomain =
+            Math.ceil(
+                (maxVolume * 1.1) /
+                volumeStep,
+            ) * volumeStep;
 
         const dailyTicks = useMemo(
             () => getDailyTicks(data),
@@ -135,7 +222,7 @@ export const VolumeChart =
         const hourlyTicks = useMemo(
             () =>
                 range === "24H"
-                    ? chartData
+                    ? data
                         .filter(
                             (_, index) =>
                                 index % 4 === 0,
@@ -145,22 +232,59 @@ export const VolumeChart =
                                 point.timestamp,
                         )
                     : [],
-            [chartData, range],
+            [data, range],
         );
 
-        // Give the tallest bar some breathing room.
-        const volumeStep =
-            maxVolume <= 100
-                ? 50
-                : maxVolume <= 500
-                    ? 100
-                    : maxVolume <= 2_000
-                        ? 500
-                        : 1_000;
+        function VolumeTooltip({active, payload, label,}: any) {
+            if (!active || !payload?.length) {
+                return null;
+            }
 
-        const volumeCeiling =
-            Math.ceil((maxVolume * 1.2) / volumeStep) *
-            volumeStep;
+            const buy =
+                Number(
+                    payload.find(
+                        (item: any) =>
+                            item.dataKey === "highPriceVolume",
+                    )?.value ?? 0,
+                );
+
+            const sell =
+                Math.abs(
+                    Number(
+                        payload.find(
+                            (item: any) =>
+                                item.dataKey === "lowPriceVolume",
+                        )?.value ?? 0,
+                    ),
+                );
+
+            return (
+                <div className="volume-tooltip">
+                    <div>
+                        {new Date(
+                            Number(label) * 1000,
+                        ).toLocaleString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        })}
+                    </div>
+
+                    <div className="volume-tooltip-buy">
+                        Buy: {buy.toLocaleString()}
+                    </div>
+
+                    <div className="volume-tooltip-sell">
+                        Sell: {sell.toLocaleString()}
+                    </div>
+
+                    <div className="volume-tooltip-total">
+                        Total: {(buy + sell).toLocaleString()}
+                    </div>
+                </div>
+            );
+        }
 
         return (
             <div className="volume-chart-real">
@@ -170,13 +294,14 @@ export const VolumeChart =
                 >
                     <BarChart
                         data={chartData}
+                        stackOffset="sign"
+                        responsive
                         margin={{
                             top: 15,
                             right: 10,
-                            bottom: 10,
-                            left: 5,
+                            bottom: 20,
+                            left: 0,
                         }}
-                        barCategoryGap={1}
                     >
                         <CartesianGrid
                             stroke="rgba(255,255,255,0.055)"
@@ -185,90 +310,71 @@ export const VolumeChart =
 
                         <XAxis
                             dataKey="timestamp"
-                            type="category"
+                            type="number"
+                            padding={{
+                                left: 12,
+                                right: 12,
+                            }}
                             ticks={
                                 range === '7D'
                                     ? dailyTicks
                                     : hourlyTicks
                             }
-                            tickFormatter={(timestamp) => {
-                                const date = new Date(
-                                    Number(timestamp) * 1000,
-                                );
-
-                                if (range === '24H') {
-                                    return date.toLocaleTimeString(
-                                        'en-GB',
-                                        {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        },
-                                    );
-                                }
-
-                                return date.toLocaleDateString(
-                                    'en-GB',
-                                    {
-                                        day: 'numeric',
-                                        month: 'short',
-                                    },
-                                );
-                            }}
-                            tick={{
-                                fill: '#aaa69d',
-                                fontSize: 11,
-                            }}
+                            domain={
+                                zoomRange
+                                    ? [zoomRange.start, zoomRange.end]
+                                    : ["dataMin", "dataMax"]
+                            }
+                            tick={
+                                <VolumeTimeAxisTick
+                                    range={range}
+                                />
+                            }
                             tickLine={false}
                             axisLine={false}
                             interval={0}
                         />
 
                         <YAxis
-                            domain={[0, volumeCeiling]}
+                            domain={[-volumeDomain, volumeDomain]}
                             width={55}
-                            allowDecimals={false}
                             tick={{
-                                fill: '#aaa69d',
+                                fill: "#aaa69d",
                                 fontSize: 11,
                             }}
                             tickLine={false}
                             axisLine={false}
+                            tickFormatter={(value) =>
+                                Math.abs(Number(value)).toLocaleString()
+                            }
                         />
 
                         <Tooltip
                             cursor={{
-                                fill: 'rgba(255,255,255,0.035)',
+                                fill: "rgba(255, 255, 255, 0.04)",
+                                stroke: "none",
                             }}
-                            contentStyle={{
-                                background: '#141714',
-                                border: '1px solid #35342d',
-                                borderRadius: '4px',
-                                color: '#e9e2d5',
-                            }}
-                            labelFormatter={(timestamp) =>
-                                new Date(
-                                    Number(timestamp) * 1000,
-                                ).toLocaleString(
-                                    'en-GB',
-                                    {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                    },
-                                )
-                            }
-                            formatter={(value) => [
-                                Number(value).toLocaleString(),
-                                'Volume',
-                            ]}
+                            content={<VolumeTooltip />}
+                        />
+
+                        <ReferenceLine y={0} />
+
+                        <Bar
+                            dataKey="highPriceVolume"
+                            name="Buy"
+                            stackId="stack"
+                            fill="var(--positive)"
+                            isAnimationActive={false}
                         />
 
                         <Bar
-                            dataKey="totalVolume"
-                            fill="#476aa0"
+                            dataKey="lowPriceVolume"
+                            name="Sell"
+                            stackId="stack"
+                            fill="var(--negative)"
                             isAnimationActive={false}
                         />
+
                     </BarChart>
                 </ResponsiveContainer>
             </div>
@@ -308,23 +414,19 @@ function getPriceRoundStep(price: number): number {
     return 100_000_000;
 }
 
+export type ZoomRangeType = {
+    start: number;
+    end: number;
+} | null;
+
 export const PriceHistoryChart =
-    memo(function PriceHistoryChart({data, range, onZoomChange, onResetZoom}: {
+    memo(function PriceHistoryChart({data, range, onZoomChange}: {
         data: PricePoint[];
-        range: string;
-        onZoomChange: (
-            start: number,
-            end: number,
-        ) => void;
-        onResetZoom: () => void;
+        range: PriceHistoryRange;
+        onZoomChange: React.Dispatch<
+            React.SetStateAction<ZoomRangeType>
+        >;
     }) {
-
-        const [selectionStart, setSelectionStart] =
-            useState<number | null>(null);
-
-        const [selectionEnd, setSelectionEnd] =
-            useState<number | null>(null);
-
         const formatXAxis = (timestamp: number) => {
             const date = new Date(timestamp * 1000);
 
@@ -362,6 +464,14 @@ export const PriceHistoryChart =
             () => getDailyTicks(data),
             [data],
         );
+
+        const [selection, setSelection] = useState<{
+            left: number | null;
+            right: number | null;
+        }>({
+            left: null,
+            right: null,
+        });
 
         const { minPrice, maxPrice } =
             useMemo(() => {
@@ -436,57 +546,67 @@ export const PriceHistoryChart =
             );
         }
 
+        const handleZoom = () => {
+            if (
+                selection.left === null ||
+                selection.right === null ||
+                selection.left === selection.right
+            ) {
+                setSelection({
+                    left: null,
+                    right: null,
+                });
+
+                return;
+            }
+
+            onZoomChange({
+                start: Math.min(
+                    selection.left,
+                    selection.right,
+                ),
+                end: Math.max(
+                    selection.left,
+                    selection.right,
+                ),
+            });
+
+            setSelection({
+                left: null,
+                right: null,
+            });
+        };
         return (
             <div
                 style={{ width: '100%', height: 300 }}
                 onContextMenu={(event) => {
                     event.preventDefault();
-                    onResetZoom();
+                    onZoomChange(null);
                 }}
             >
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart
                         data={data}
-                        onMouseDown={(state) => {
-                            if (
-                                typeof state?.activeLabel ===
-                                "number"
-                            ) {
-                                setSelectionStart(
-                                    state.activeLabel,
-                                );
-
-                                setSelectionEnd(
-                                    state.activeLabel,
-                                );
+                        onMouseDown={(event) => {
+                            if (event?.activeLabel !== undefined) {
+                                setSelection({
+                                    left: Number(event.activeLabel),
+                                    right: null,
+                                });
                             }
                         }}
-                        onMouseMove={(state) => {
+                        onMouseMove={(event) => {
                             if (
-                                selectionStart !== null &&
-                                typeof state?.activeLabel ===
-                                "number"
+                                selection.left !== null &&
+                                event?.activeLabel !== undefined
                             ) {
-                                setSelectionEnd(
-                                    state.activeLabel,
-                                );
+                                setSelection((current) => ({
+                                    ...current,
+                                    right: Number(event.activeLabel),
+                                }));
                             }
                         }}
-                        onMouseUp={() => {
-                            if (
-                                selectionStart !== null &&
-                                selectionEnd !== null &&
-                                selectionStart !== selectionEnd
-                            ) {
-                                onZoomChange(
-                                    selectionStart,
-                                    selectionEnd,
-                                );
-                            }
-
-                            setSelectionStart(null);
-                            setSelectionEnd(null);
-                        }}
+                        onMouseUp={handleZoom}
                         margin={{
                             top: 10,
                             right: 10,
@@ -494,13 +614,12 @@ export const PriceHistoryChart =
                             left: 5,
                         }}
                     >
-                        {selectionStart !== null &&
-                            selectionEnd !== null && (
+
+                        {selection.left !== null &&
+                            selection.right !== null && (
                                 <ReferenceArea
-                                    x1={selectionStart}
-                                    x2={selectionEnd}
-                                    strokeOpacity={0.3}
-                                    fillOpacity={0.12}
+                                    x1={selection.left}
+                                    x2={selection.right}
                                 />
                             )}
 
@@ -512,7 +631,7 @@ export const PriceHistoryChart =
                         <XAxis
                             dataKey="timestamp"
                             type="number"
-                            domain={['dataMin', 'dataMax']}
+                            domain={["dataMin", "dataMax"]}
                             tickFormatter={formatXAxis}
                             tickCount={range === '24H' ? 7 : 8}
                             minTickGap={30}

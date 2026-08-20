@@ -1,5 +1,6 @@
-import type { PricePoint } from "../types/item";
+import type {PricePoint, VolumeChartPoint} from "../types/item";
 import type { PriceHistoryRange } from "../services/itemService";
+import type {ZoomRangeType} from "../components/PriceHistoryChart.tsx";
 
 const FIVE_MINUTES = 5 * 60;
 const ONE_HOUR = 60 * 60;
@@ -8,7 +9,7 @@ const ONE_DAY = 24 * 60 * 60;
 export function normalizeVolumeHistory(
     history: PricePoint[],
     range: PriceHistoryRange,
-): PricePoint[] {
+): VolumeChartPoint[] {
     if (history.length === 0) {
         return [];
     }
@@ -335,15 +336,15 @@ function fillFiveMinuteVolumeGaps(
 */
 
 function toHourlyVolume(
-    history: PricePoint[],
-): PricePoint[] {
+    history: VolumeChartPoint[],
+): VolumeChartPoint[] {
     const sorted = [...history].sort(
         (a, b) => a.timestamp - b.timestamp,
     );
 
     const buckets = new Map<
         number,
-        PricePoint[]
+        VolumeChartPoint[]
     >();
 
     for (const point of sorted) {
@@ -360,22 +361,17 @@ function toHourlyVolume(
         buckets.set(hour, bucket);
     }
 
-    const result: PricePoint[] = [];
+    const result: VolumeChartPoint[] = [];
 
     for (const [timestamp, points] of buckets) {
         result.push({
             timestamp,
-
-            avgHighPrice: null,
-            avgLowPrice: null,
-
             highPriceVolume:
                 points.reduce(
                     (sum, point) =>
                         sum + point.highPriceVolume,
                     0,
                 ),
-
             lowPriceVolume:
                 points.reduce(
                     (sum, point) =>
@@ -390,14 +386,14 @@ function toHourlyVolume(
 
 function toDailyVolume(
     history: PricePoint[],
-): PricePoint[] {
+): VolumeChartPoint[] {
     if (history.length === 0) {
         return [];
     }
 
     const buckets = new Map<
         number,
-        PricePoint[]
+        VolumeChartPoint[]
     >();
 
     for (const point of history) {
@@ -413,23 +409,17 @@ function toDailyVolume(
         buckets.set(day, bucket);
     }
 
-    const result: PricePoint[] = [];
+    const result: VolumeChartPoint[] = [];
 
     for (const [timestamp, points] of buckets) {
         result.push({
             timestamp,
-
-            // Not used by the volume chart.
-            avgHighPrice: null,
-            avgLowPrice: null,
-
             highPriceVolume:
                 points.reduce(
                     (sum, point) =>
                         sum + point.highPriceVolume,
                     0,
                 ),
-
             lowPriceVolume:
                 points.reduce(
                     (sum, point) =>
@@ -479,4 +469,46 @@ export function formatLatestUpdatedAt(
         value: hours.toString(),
         unit: "h",
     };
+}
+
+export function formatZoomRange(
+    zoomRange: Exclude<ZoomRangeType, null>,
+    range: PriceHistoryRange,
+): string {
+    const start = new Date(
+        zoomRange.start * 1000,
+    );
+
+    const endTimestamp =
+        range === "24H"
+            ? zoomRange.end + 5 * 60
+            : zoomRange.end;
+
+    const end = new Date(
+        endTimestamp * 1000,
+    );
+
+    if (range === "24H") {
+        const formatTime = (date: Date) =>
+            date.toLocaleTimeString(
+                "en-GB",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                },
+            );
+
+        return `${formatTime(start)}–${formatTime(end)}`;
+    }
+
+    const formatDate = (date: Date) =>
+        date.toLocaleDateString(
+            "en-GB",
+            {
+                day: "numeric",
+                month: "short",
+            },
+        );
+
+    return `${formatDate(start)}–${formatDate(end)}`;
 }
