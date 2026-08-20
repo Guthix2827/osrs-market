@@ -40,6 +40,8 @@ Implemented:
 - Client-side history caching by range for fast chart switching
 - Periodic frontend history refresh
 - Docker development environment
+- Production Docker Compose stack with Nginx frontend proxy and service health checks
+- PostgreSQL first-run schema initialization from `backend/sql`
 - Interactive chart zoom with synchronized price, volume, and trade distribution data
 
 Planned / next steps:
@@ -49,8 +51,7 @@ Planned / next steps:
 - Share functionality
 - Additional market statistics and aggregation
 - WebSocket live price updates for actively viewed items (instant buy / sell)
-- Production Docker image
-- Reverse proxy / production deployment
+- SQL migration runner for incremental database schema updates
 - Further frontend and backend performance hardening
 
 ---
@@ -619,6 +620,81 @@ Recent logs only:
 
 ```bash
 docker compose logs --since=30s backend
+```
+
+# Production
+
+The production stack runs as:
+
+```text
+Browser
+  |
+  v
+Frontend (Nginx :80)
+  |
+  v
+Backend (Crow :8080)
+  |
+  v
+PostgreSQL (:5432)
+```
+
+Docker health checks are configured for PostgreSQL, the backend API, and the frontend. The frontend waits for the backend to become healthy, while the backend waits for PostgreSQL.
+
+On a fresh PostgreSQL volume, SQL files from `backend/sql` are mounted into `/docker-entrypoint-initdb.d` and executed automatically during first-time database initialization. Existing initialized volumes are left unchanged.
+
+### Build
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  build
+```
+
+### Start
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  up -d
+```
+
+### Stop
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  down
+```
+
+### Build and start
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  up -d --build
+```
+
+### Status
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  ps
+```
+
+### Backend logs
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  logs -f backend
 ```
 
 ---
