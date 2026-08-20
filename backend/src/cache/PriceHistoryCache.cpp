@@ -99,16 +99,16 @@ PriceHistoryCache::ttlForRange(
     using namespace std::chrono_literals;
 
     if (range == "24h")
-        return 30s;
-
-    if (range == "7d")
-        return 2min;
-
-    if (range == "30d")
         return 5min;
 
-    if (range == "1y")
+    if (range == "7d")
+        return 5min;
+
+    if (range == "30d")
         return 10min;
+
+    if (range == "1y")
+        return 30min;
 
     return 30s;
 }

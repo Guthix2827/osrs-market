@@ -14,14 +14,15 @@
 #include "jobs/GapRecoveryJob.hpp"
 
 #include "database/Database.hpp"
+#include "cache/PriceHistoryCache.hpp"
 #include "items/ItemRepository.hpp"
 #include "items/ItemFilter.hpp"
+#include "items/WatchSummary.hpp"
 #include "prices/FiveMinutePriceClient.hpp"
 #include "prices/LatestPriceStore.hpp"
 #include "prices/PriceRepository.hpp"
 #include "prices/TimeseriesClient.hpp"
 #include "prices/BackfillPolicy.hpp"
-#include "prices/PriceHistoryCache.hpp"
 #include "prices/HistoryRange.hpp"
 
 #include <crow.h>
@@ -709,6 +710,150 @@ int main(
         nlohmann::json response{
             {"data", std::move(data)}
         };
+
+        return crow::response{
+            200,
+            "application/json",
+            response.dump()
+        };
+    });
+
+    CROW_ROUTE(app, "/api/items/<int>/watch-summary")
+    ([&historyRepository,
+    &historyCache,
+    &backfillPolicy](
+        int itemId
+    )
+    {
+        constexpr std::string_view range{
+            "24h"
+        };
+
+        const auto rangeConfig =
+            parseHistoryRange(
+                std::string{range}
+            );
+
+        if (!rangeConfig)
+        {
+            return crow::response{
+                500,
+                "application/json",
+                R"({"error":"Failed to configure watch history range"})"
+            };
+        }
+
+        const auto now =
+            std::chrono::system_clock::now();
+
+        const auto toTimestamp =
+            std::chrono::duration_cast<
+                std::chrono::seconds
+            >(
+                now.time_since_epoch()
+            ).count();
+
+        std::vector<PricePoint> points;
+
+        const auto cached =
+            historyCache.get(
+                itemId,
+                range
+            );
+
+        if (cached)
+        {
+            Logger::info(
+                "Watch summary cache hit: item=",
+                itemId
+            );
+
+            points = *cached;
+        }
+        else
+        {
+            Logger::info(
+                "Watch summary cache miss: item=",
+                itemId
+            );
+
+            const auto fromTimestamp =
+                toTimestamp -
+                rangeConfig->seconds;
+
+            points =
+                historyRepository.findHistory(
+                    itemId,
+                    fromTimestamp,
+                    toTimestamp,
+                    rangeConfig->range
+                );
+
+            const bool hasCoverage =
+                backfillPolicy.hasCoverage(
+                    itemId,
+                    std::chrono::seconds{
+                        rangeConfig->seconds
+                    }
+                );
+
+            if (hasCoverage)
+            {
+                historyCache.set(
+                    itemId,
+                    std::string{range},
+                    points
+                );
+            }
+        }
+
+
+        const auto summary =
+            buildWatchSummary(
+                itemId,
+                points,
+                toTimestamp
+            );
+
+
+        nlohmann::json response;
+
+        response["itemId"] =
+            summary.itemId;
+
+        response["generatedAt"] =
+            summary.generatedAt;
+
+        response["references"] =
+            nlohmann::json::object();
+
+        auto& references =
+            response["references"];
+
+        references["30m"] =
+            summary.references.price30m
+                ? nlohmann::json(*summary.references.price30m)
+                : nlohmann::json(nullptr);
+
+        references["1h"] =
+            summary.references.price1h
+                ? nlohmann::json(*summary.references.price1h)
+                : nlohmann::json(nullptr);
+
+        references["6h"] =
+            summary.references.price6h
+                ? nlohmann::json(*summary.references.price6h)
+                : nlohmann::json(nullptr);
+
+        references["12h"] =
+            summary.references.price12h
+                ? nlohmann::json(*summary.references.price12h)
+                : nlohmann::json(nullptr);
+
+        references["24h"] =
+            summary.references.price24h
+                ? nlohmann::json(*summary.references.price24h)
+                : nlohmann::json(nullptr);
 
         return crow::response{
             200,

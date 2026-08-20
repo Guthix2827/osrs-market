@@ -10,37 +10,40 @@ import AboutPage from "./pages/AboutPage";
 import { Header } from "./components/Header.tsx";
 import { Footer } from "./components/Footer";
 import "./App.css";
+import {WatchlistProvider} from "./components/watchlist/WatchlistContext.tsx";
 
 function App() {
     return (
         <BrowserRouter>
-            <div className="market-page">
-                <Header />
+            <WatchlistProvider>
+                <div className="market-page">
+                    <Header />
 
-                <Routes>
-                    <Route
-                        path="/items/:id"
-                        element={<ItemPage />}
-                    />
+                    <Routes>
+                        <Route
+                            path="/items/:id"
+                            element={<ItemPage />}
+                        />
 
-                    <Route
-                        path="/about"
-                        element={<AboutPage />}
-                    />
+                        <Route
+                            path="/about"
+                            element={<AboutPage />}
+                        />
 
-                    <Route
-                        path="/"
-                        element={
-                            <Navigate
-                                to="/items/6739"
-                                replace
-                            />
-                        }
-                    />
-                </Routes>
+                        <Route
+                            path="/"
+                            element={
+                                <Navigate
+                                    to="/items/6739"
+                                    replace
+                                />
+                            }
+                        />
+                    </Routes>
 
-                <Footer />
-            </div>
+                    <Footer />
+                </div>
+            </WatchlistProvider>
         </BrowserRouter>
     );
 }

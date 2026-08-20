@@ -5,7 +5,7 @@
 #include "../prices/FiveMinutePriceClient.hpp"
 #include "../prices/LatestPriceStore.hpp"
 #include "../prices/PriceRepository.hpp"
-#include "../prices/PriceHistoryCache.hpp"
+#include "../cache/PriceHistoryCache.hpp"
 
 #include <cstddef>
 #include <exception>

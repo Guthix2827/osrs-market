@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PricePoint.hpp"
+#include "prices/PricePoint.hpp"
 
 #include <chrono>
 #include <cstdint>
