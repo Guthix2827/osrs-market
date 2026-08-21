@@ -798,6 +798,7 @@ int main(
             if (hasCoverage)
             {
                 filterPriceOutliers(points);
+
                 historyCache.set(
                     itemId,
                     std::string{range},
@@ -813,6 +814,26 @@ int main(
                 toTimestamp
             );
 
+        std::optional<std::int64_t> currentMidPrice;
+
+        for (auto it = points.rbegin();
+            it != points.rend();
+            ++it)
+        {
+            if (
+                it->avgHighPrice &&
+                it->avgLowPrice
+            )
+            {
+                currentMidPrice =
+                    (
+                        *it->avgHighPrice +
+                        *it->avgLowPrice
+                    ) / 2;
+
+                break;
+            }
+        }
 
         nlohmann::json response;
 
@@ -821,6 +842,11 @@ int main(
 
         response["generatedAt"] =
             summary.generatedAt;
+
+        response["currentMidPrice"] =
+            currentMidPrice
+                ? nlohmann::json(*currentMidPrice)
+                : nlohmann::json(nullptr);
 
         response["references"] =
             nlohmann::json::object();

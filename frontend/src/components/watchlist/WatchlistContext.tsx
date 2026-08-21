@@ -29,6 +29,9 @@ interface WatchlistContextType {
         itemId: number,
         range: WatchlistChangeRange,
     ) => void;
+    getWatchedItem: (
+        itemId: number
+    ) => WatchedItem | null;
 }
 
 const WatchlistContext =
@@ -179,6 +182,14 @@ export function WatchlistProvider({children}: { children: ReactNode; }) {
             );
         },
         [],
+    );
+
+    const getWatchedItem = useCallback(
+        (itemId: number) =>
+            items.find(
+                (item) => item.id === itemId
+            ) ?? null,
+        [items],
     );
 
     const refreshItems =
@@ -363,6 +374,7 @@ export function WatchlistProvider({children}: { children: ReactNode; }) {
 
                 isWatched,
                 setItemChangeRange,
+                getWatchedItem
             }}
         >
             {children}

@@ -29,7 +29,10 @@ export interface WatchedItem {
     id: number;
     name: string;
     icon: string;
-    price: number | null;
+
+    priceAtAdded: number | null;
+    watchedAt: number;
+
     summary: WatchSummary | null;
     changeRange: WatchlistChangeRange;
 }
@@ -128,14 +131,24 @@ function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemP
                 : undefined,
     };
 
+    const currentMidPrice =
+        item.summary?.currentMidPrice ??
+        null;
+
     const referencePrice =
         item.summary?.references[changeRange] ??
         null;
 
-    const changePercent =
+    const rangeChangePercent =
         calculatePriceChange(
             referencePrice,
-            item.price,
+            currentMidPrice,
+        );
+
+    const sinceAddedPercent =
+        calculatePriceChange(
+            item.priceAtAdded,
+            currentMidPrice,
         );
 
     const {
@@ -164,6 +177,7 @@ function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemP
             <div className="watchlist-item-main">
                 <Link
                     to={`/items/${item.id}`}
+                    title={item.name}
                     className="watchlist-item-name"
                     onPointerDown={(event) =>
                         event.stopPropagation()
@@ -174,43 +188,61 @@ function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemP
                 </Link>
 
                 <span className="watchlist-item-price">
-                    {formatGp(item.price)}
+                    {formatGp(currentMidPrice)}
                 </span>
             </div>
 
             <div className="watchlist-item-change">
-                <select
-                    className="watchlist-range-select"
-                    value={changeRange}
-                    aria-label={`Price change range for ${item.name}`}
-                    onPointerDown={(event) => {
-                        event.stopPropagation();
-                    }}
-                    onChange={(event) => {
-                        setItemChangeRange(
-                            item.id,
-                            event.target.value as WatchlistChangeRange,
-                        );
-                    }}
-                >
-                    <option value="30m">30m</option>
-                    <option value="1h">1h</option>
-                    <option value="6h">6h</option>
-                    <option value="12h">12h</option>
-                    <option value="24h">24h</option>
-                </select>
+                <div className="watchlist-change-row">
+                    <select
+                        className="watchlist-range-select"
+                        value={changeRange}
+                        aria-label={`Price change range for ${item.name}`}
+                        onPointerDown={(event) => {
+                            event.stopPropagation();
+                        }}
+                        onChange={(event) => {
+                            setItemChangeRange(
+                                item.id,
+                                event.target.value as WatchlistChangeRange,
+                            );
+                        }}
+                    >
+                        <option value="30m">30m</option>
+                        <option value="1h">1h</option>
+                        <option value="6h">6h</option>
+                        <option value="12h">12h</option>
+                        <option value="24h">24h</option>
+                    </select>
 
-                <strong
-                    className={
-                        changePercent === null
-                            ? ""
-                            : changePercent >= 0
-                                ? "positive"
-                                : "negative"
-                    }
-                >
-                    {formatPriceChange(changePercent)}
-                </strong>
+                    <strong
+                        className={
+                            rangeChangePercent === null
+                                ? ""
+                                : rangeChangePercent >= 0
+                                    ? "positive"
+                                    : "negative"
+                        }
+                    >
+                        {formatPriceChange(rangeChangePercent)}
+                    </strong>
+                </div>
+
+                <div className="watchlist-change-row watchlist-since-added">
+                    <span>Since added</span>
+
+                    <strong
+                        className={
+                            sinceAddedPercent === null
+                                ? ""
+                                : sinceAddedPercent >= 0
+                                    ? "positive"
+                                    : "negative"
+                        }
+                    >
+                        {formatPriceChange(sinceAddedPercent)}
+                    </strong>
+                </div>
             </div>
 
             <button
@@ -332,9 +364,28 @@ export function WatchlistDrawer({open, items, onClose, onRemove, onReorder}: Wat
 
                 <div className="watchlist-items">
                     <div className="watchlist-change-hint">
-                        Change is measured from the
-                        <strong> selected range </strong>
-                        to <strong>now</strong>.
+                        <div className="watchlist-change-hint-icon">
+                            i
+                        </div>
+
+                        <div className="watchlist-change-hint-content">
+                            <p>
+                                Price shown is the current market <strong>midpoint</strong>
+                                {" "}between instant buy and sell.
+                            </p>
+
+                            <p>
+                                The <strong>selected range</strong> compares the current
+                                midpoint with the midpoint at the start of that range.
+                                <br />
+                                <strong>Since added</strong> compares the current midpoint
+                                with the midpoint when the item was added to your watchlist.
+                            </p>
+
+                            <p>
+                                Percentages <strong>exclude GE tax</strong>.
+                            </p>
+                        </div>
                     </div>
 
                     {items.length === 0 ? (

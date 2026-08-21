@@ -420,12 +420,13 @@ export type ZoomRangeType = {
 } | null;
 
 export const PriceHistoryChart =
-    memo(function PriceHistoryChart({data, range, onZoomChange}: {
+    memo(function PriceHistoryChart({data, range, onZoomChange, watchedAt}: {
         data: PricePoint[];
         range: PriceHistoryRange;
         onZoomChange: React.Dispatch<
             React.SetStateAction<ZoomRangeType>
         >;
+        watchedAt: number | null;
     }) {
         const formatXAxis = (timestamp: number) => {
             const date = new Date(timestamp * 1000);
@@ -464,6 +465,35 @@ export const PriceHistoryChart =
             () => getDailyTicks(data),
             [data],
         );
+
+        const watchedMarkerVisible =
+            useMemo(() => {
+                if (
+                    watchedAt === null ||
+                    data.length === 0
+                ) {
+                    return false;
+                }
+
+                const timestamps =
+                    data.map(
+                        (point) => point.timestamp,
+                    );
+
+                const minTimestamp =
+                    Math.min(...timestamps);
+
+                const maxTimestamp =
+                    Math.max(...timestamps);
+
+                return (
+                    watchedAt >= minTimestamp &&
+                    watchedAt <= maxTimestamp
+                );
+            }, [
+                data,
+                watchedAt,
+            ]);
 
         const [selection, setSelection] = useState<{
             left: number | null;
@@ -627,6 +657,22 @@ export const PriceHistoryChart =
                             stroke="rgba(255,255,255,0.055)"
                             vertical={true}
                         />
+
+                        {watchedMarkerVisible && (
+                            <ReferenceLine
+                                x={watchedAt!}
+                                stroke="#d6a34a"
+                                strokeWidth={1}
+                                strokeDasharray="4 4"
+                                ifOverflow="hidden"
+                                label={{
+                                    value: "Watched",
+                                    position: "insideTopRight",
+                                    fill: "#d6a34a",
+                                    fontSize: 11,
+                                }}
+                            />
+                        )}
 
                         <XAxis
                             dataKey="timestamp"
