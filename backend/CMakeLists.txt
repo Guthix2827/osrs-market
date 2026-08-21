@@ -71,6 +71,7 @@ add_executable(
     src/prices/BackfillPolicy.cpp
 
     src/cache/PriceHistoryCache.cpp
+    src/utils/Price.cpp
 )
 
 target_include_directories(
