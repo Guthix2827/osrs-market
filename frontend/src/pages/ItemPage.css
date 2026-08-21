@@ -50,8 +50,9 @@
 }
 
 .item-icon-frame img {
-    width: auto;
+    max-width: 70px;
     height: 80px;
+    object-fit: contain;
 
     image-rendering: pixelated;
 }
@@ -1311,15 +1312,15 @@
     border: 1px solid var(--border);
     border-radius: 4px;
 
-    background: var(--surface-2);
-    color: var(--text-primary);
+    background: var(--surface-soft);
+    color: var(--text);
 
     font-size: 11px;
     line-height: 1;
 }
 
 .zoom-filter-label {
-    color: var(--accent);
+    color: var(--gold);
     font-size: 9px;
     font-weight: 700;
     letter-spacing: 0.06em;
@@ -1330,7 +1331,7 @@
     padding-top: 6px;
     border-top: 1px solid var(--border);
 
-    color: var(--text-primary);
+    color: var(--text);
     font-weight: 500;
 }
 

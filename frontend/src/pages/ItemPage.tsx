@@ -31,6 +31,7 @@ export default function ItemPage() {
         addItem,
         removeItem,
         isWatched,
+        getWatchedItem
     } = useWatchlist();
 
     const { id } = useParams();
@@ -101,6 +102,13 @@ export default function ItemPage() {
     }, [itemId]);
 
     const watched = metaItem !== null && isWatched(metaItem.id);
+
+    const watchedItem =
+        metaItem !== null
+            ? getWatchedItem(metaItem.id)
+            : null;
+
+    const watchedAt = watchedItem?.watchedAt ?? null;
 
     const isRangeLoaded = historyByRange[range] !== undefined;
 
@@ -389,11 +397,6 @@ export default function ItemPage() {
             return;
         }
 
-        const currentPrice =
-            latestPrice?.high ??
-            latestPrice?.low ??
-            null;
-
         try {
             const summary =
                 await watchlistService.getWatchSummary(
@@ -404,8 +407,9 @@ export default function ItemPage() {
                 id: metaItem.id,
                 name: metaItem.name,
                 icon: metaItem.icon,
-                price: currentPrice,
+                priceAtAdded: summary.currentMidPrice,
                 summary,
+                watchedAt: summary.generatedAt,
                 changeRange: "30m",
             });
         } catch (error) {
@@ -675,6 +679,7 @@ export default function ItemPage() {
                                 data={visiblePriceHistory}
                                 range={range}
                                 onZoomChange={setZoomRange}
+                                watchedAt={watchedAt}
                             />
                         </div>
 

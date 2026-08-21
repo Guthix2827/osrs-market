@@ -8,7 +8,7 @@ export type WatchlistChangeRange =
 export interface WatchSummary {
     itemId: number;
     generatedAt: number;
-
+    currentMidPrice: number | null;
     references: Record<
         WatchlistChangeRange,
         number | null

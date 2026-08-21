@@ -25,7 +25,7 @@
 
     z-index: 1001;
 
-    width: 325px;
+    width: 360px;
     max-width: 90vw;
 
     background: #0d100e;
@@ -101,14 +101,20 @@
     flex-direction: column;
     gap: 9px;
 
-    padding: 18px;
+    position: relative;
+
+    height: 100%;
+    padding: 18px 18px 175px;
 
     overflow-y: auto;
+
+    background: #0d100e;
+    z-index: 10;
 }
 
 .watchlist-item {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) 52px 40px;
+    grid-template-columns: 27px 1fr 104px 30px;
 
     align-items: center;
     gap: 10px;
@@ -187,7 +193,7 @@
 .watchlist-remove {
     appearance: none;
 
-    width: 38px;
+    width: 28px;
     height: 42px;
 
     display: flex;
@@ -312,31 +318,50 @@
 }
 
 .watchlist-item-price {
-    color: #aaa69d;
-
+    color: #b8b3aa;
     font-size: 12px;
+    font-variant-numeric: tabular-nums;
 }
 
 .watchlist-item-change {
     display: flex;
     flex-direction: column;
-    align-items: flex-end;
-    gap: 5px;
+    align-items: stretch;
+    gap: 6px;
+    text-align: center;
+}
 
-    white-space: nowrap;
+.watchlist-change-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.watchlist-item-change strong {
+    width: auto;
+    min-width: 42px;
+    font-size: 12px;
+    font-weight: 500;
+    text-align: right;
+}
+
+.watchlist-since-added {
+    padding-top: 2px;
+}
+
+.watchlist-since-added span {
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.watchlist-since-added strong {
+    font-size: 11px;
 }
 
 .watchlist-item-change span {
     color: #77736c;
-
     font-size: 10px;
-}
-
-.watchlist-item-change strong {
-    font-size: 12px;
-    font-weight: 500;
-    width: 47px;
-    text-align: center;
 }
 
 .watchlist-item-change .positive {
@@ -345,6 +370,22 @@
 
 .watchlist-item-change .negative {
     color: var(--negative);
+}
+
+.watchlist-change-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.watchlist-since-added {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.watchlist-since-added strong {
+    font-size: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -416,11 +457,57 @@
 }
 
 .watchlist-change-hint {
-    color: #8f8b80;
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 100px;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+
+    padding-top: 18px;
+
+    border-top: 1px solid #6f5a2d;
+
+    color: #9b978e;
+
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.watchlist-change-hint-icon {
+    flex: 0 0 20px;
+
+    width: 20px;
+    height: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    margin-top: 2px;
+
+    border: 1px solid #77736c;
+    border-radius: 50%;
+
+    color: #aaa69d;
+
     font-size: 12px;
-    line-height: 1.4;
-    margin-bottom: 8px;
-    text-align: center;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.watchlist-change-hint-content {
+    min-width: 0;
+}
+
+.watchlist-change-hint p {
+    margin: 0 0 8px;
+}
+
+.watchlist-change-hint p:last-child {
+    margin-bottom: 0;
 }
 
 .watchlist-change-hint strong {
