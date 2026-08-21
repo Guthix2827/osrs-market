@@ -1,9 +1,10 @@
 #include "utils/Logger.hpp"
-#include "jobs/MappingRefreshJob.hpp"
+#include "utils/Price.hpp"
 #include "mapping/MappingClient.hpp"
 #include "mapping/MappingStore.hpp"
 #include "icons/IconDownloader.hpp"
 
+#include "jobs/MappingRefreshJob.hpp"
 #include "jobs/IconDownloadJob.hpp"
 #include "jobs/IconDownloadWorker.hpp"
 #include "jobs/FiveMinutePriceRefreshJob.hpp"
@@ -568,7 +569,7 @@ int main(
         const auto fromTimestamp =
             toTimestamp - rangeSeconds;
 
-        const auto points =
+        std::vector<PricePoint> points =
             historyRepository.findHistory(
                 itemId,
                 fromTimestamp,
@@ -586,9 +587,7 @@ int main(
 
         if (hasCoverage)
         {
-            //
-            // Store result in RAM.
-            //
+            filterPriceOutliers(points);
             historyCache.set(
                 itemId,
                 range,
@@ -604,7 +603,6 @@ int main(
                 range
             );
         }
-
 
         //
         // Build response.
@@ -799,6 +797,7 @@ int main(
 
             if (hasCoverage)
             {
+                filterPriceOutliers(points);
                 historyCache.set(
                     itemId,
                     std::string{range},
@@ -806,7 +805,6 @@ int main(
                 );
             }
         }
-
 
         const auto summary =
             buildWatchSummary(

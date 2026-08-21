@@ -281,60 +281,6 @@ function toHourlyPoints(
     return result;
 }
 
-/*
-function fillFiveMinuteVolumeGaps(
-    history: PricePoint[],
-): PricePoint[] {
-    const sorted = [...history].sort(
-        (a, b) => a.timestamp - b.timestamp,
-    );
-
-    const byTimestamp = new Map(
-        sorted.map((point) => [
-            point.timestamp,
-            point,
-        ]),
-    );
-
-    const firstTimestamp =
-        Math.floor(
-            sorted[0].timestamp / FIVE_MINUTES,
-        ) * FIVE_MINUTES;
-
-    const lastTimestamp =
-        Math.floor(
-            sorted[sorted.length - 1].timestamp /
-            FIVE_MINUTES,
-        ) * FIVE_MINUTES;
-
-    const result: PricePoint[] = [];
-
-    for (
-        let timestamp = firstTimestamp;
-        timestamp <= lastTimestamp;
-        timestamp += FIVE_MINUTES
-    ) {
-        const existing =
-            byTimestamp.get(timestamp);
-
-        if (existing) {
-            result.push(existing);
-            continue;
-        }
-
-        result.push({
-            timestamp,
-            avgHighPrice: null,
-            avgLowPrice: null,
-            highPriceVolume: 0,
-            lowPriceVolume: 0,
-        });
-    }
-
-    return result;
-}
-*/
-
 function toHourlyVolume(
     history: VolumeChartPoint[],
 ): VolumeChartPoint[] {
