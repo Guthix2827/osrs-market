@@ -44,7 +44,9 @@ Implemented:
 - PostgreSQL first-run schema initialization from `backend/sql`
 - Interactive chart zoom with synchronized price, volume, and trade distribution data
 - Persistent client-side watchlist with slide-out drawer, drag-and-drop ordering, and per-item range selection
-- Watchlist price-change summaries for 30m, 1h, 6h, 12h, and 24h ranges
+- Watchlist midpoint price tracking with 30m, 1h, 6h, 12h, and 24h comparisons
+- Per-item price tracking from the moment an item is added to the watchlist
+- Watched-since marker on the price history chart
 - Watch-summary API backed by the shared `PriceHistoryCache`
 - Per-item watchlist summary refresh scheduling with localStorage persistence
 
@@ -56,6 +58,10 @@ Planned / next steps:
 - WebSocket live price updates for actively viewed items (instant buy / sell)
 - SQL migration runner for incremental database schema updates
 - Further frontend and backend performance hardening
+- Historical price retention and rollup: retain high-resolution
+  5-minute market data for the recent 24-hour window, aggregate older
+  data into hourly history, archive raw events for future analytics,
+  and remove expired high-resolution rows from the live database
 
 ---
 
@@ -611,7 +617,25 @@ Supported comparison ranges:
 24h
 ```
 
-The percentage shown in the drawer compares the current item price with the historical reference price for the selected range.
+The watchlist displays the current market midpoint, calculated from the
+instant buy and instant sell prices.
+
+Two price-change measurements are shown for each watched item:
+
+- **Selected range** — compares the current midpoint with the historical
+  midpoint at the start of the selected 30m, 1h, 6h, 12h, or 24h range.
+- **Since added** — compares the current midpoint with the midpoint captured
+  when the item was added to the watchlist.
+
+The initial midpoint and watch timestamp are stored with the watched item,
+allowing the frontend to preserve the original tracking point while current
+watch-summary data continues to refresh.
+
+When the watch timestamp falls within the visible price-history range, the
+price chart displays a vertical marker showing when tracking began.
+
+These percentages represent market price movement and do not include
+Grand Exchange tax.
 
 Watch-summary data is served by the backend using the existing 24-hour `PriceHistoryCache`. On a cache hit, no PostgreSQL history query is required. On a cache miss, the backend loads the 24-hour history from PostgreSQL, stores it in the shared cache when coverage is complete, and derives the closest available reference prices for the supported ranges.
 
@@ -900,19 +924,23 @@ Example response:
 
 ```json
 {
-    "itemId": 6739,
-    "generatedAt": 1787262696,
-    "references": {
-        "30m": 6852761,
-        "1h": 6951140,
-        "6h": 6970347,
-        "12h": 6875915,
-        "24h": 6767910
-    }
+  "itemId": 6739,
+  "generatedAt": 1787262696,
+  "currentMidPrice": 6912450,
+  "references": {
+    "30m": 6852761,
+    "1h": 6951140,
+    "6h": 6970347,
+    "12h": 6875915,
+    "24h": 6767910
+  }
 }
 ```
 
-The values are historical reference prices derived from the closest available points in the cached 24-hour history. The frontend calculates the displayed percentage change against the current item price.
+The values are historical reference prices derived from the closest available points in the cached 24-hour history. The reference values are historical midpoint prices derived from the closest
+available points in the cached 24-hour history. `currentMidPrice` represents
+the current market midpoint used by the frontend for range and watchlist
+price-change calculations.
 
 Historical requests are served entirely from local PostgreSQL data and do not trigger any backfill or background work.
 Historical recovery is handled independently by `GapRecoveryJob`, which checks for gaps when the backend starts.
