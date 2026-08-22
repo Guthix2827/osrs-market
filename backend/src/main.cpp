@@ -2,8 +2,9 @@
 #include "utils/Price.hpp"
 #include "mapping/MappingClient.hpp"
 #include "mapping/MappingStore.hpp"
-#include "icons/IconDownloader.hpp"
+#include "icons/IconSubsystem.hpp"
 
+#include "jobs/BackgroundWorkers.hpp"
 #include "jobs/MappingRefreshJob.hpp"
 #include "jobs/IconDownloadJob.hpp"
 #include "jobs/IconDownloadWorker.hpp"
@@ -15,6 +16,7 @@
 #include "jobs/GapRecoveryJob.hpp"
 
 #include "database/Database.hpp"
+#include "database/DatabaseMigrator.hpp"
 #include "cache/PriceHistoryCache.hpp"
 #include "items/ItemRepository.hpp"
 #include "items/ItemFilter.hpp"
@@ -32,12 +34,13 @@
 
 #include <chrono>
 #include <filesystem>
-#include <thread>
 #include <fstream>
 #include <iterator>
 #include <iostream>
 #include <cstdlib>
 #include <string>
+#include <atomic>
+
 
 int main(
     int argc,
@@ -59,6 +62,8 @@ int main(
             "DATABASE_URL is not set"
         );
     }
+
+    DatabaseMigrator::run(databaseUrl, "/app/migrations");
 
     Database itemDatabase{databaseUrl};
     Database priceDatabase{databaseUrl};
@@ -140,42 +145,9 @@ int main(
     MappingClient mappingClient;
     TimeseriesClient timeseriesClient;
 
-
-    // Icon subsystem. - required for mapping job
-    JobQueue<IconDownloadJob> iconQueue;
-
-    IconDownloader iconDownloader{
-        "/app/data/icons"
-    };
-
-    IconDownloadWorker iconWorker{
-        iconQueue,
-        iconDownloader
-    };
-
-    std::thread iconThread{
-        [&iconWorker]
-        {
-            iconWorker.run();
-        }
-    };
-
-    iconThread.detach();
-
-
-    // Mapping job.
-    MappingRefreshJob mappingJob{
-        mappingClient,
-        mappingStore,
-        iconQueue,
-        iconDownloader,
-        itemRepository
-    };
-
-
-    // Initial mapping refresh.
-    mappingJob.execute();
-
+    //items icons
+    IconSubsystem iconSubsystem{"/app/data/icons"};
+    iconSubsystem.start();
 
     // Historical backfill subsystem.
     JobQueue<PriceBackfillRequest> backfillQueue;
@@ -190,10 +162,20 @@ int main(
         coverageRepository
     };
 
+    MappingRefreshJob mappingJob{
+        mappingClient,
+        mappingStore,
+        iconSubsystem.queue(),
+        iconSubsystem.downloader(),
+        itemRepository
+    };
 
-    //backfill commands  
+    //backfill mode  
     if (command == "backfill-all")
     {
+        //sync must load mappingStore before backfill all
+        mappingJob.execute();
+
         FullHistoryBackfillJob fullBackfill{
             mappingStore,
             backfillJob,
@@ -205,6 +187,7 @@ int main(
         return 0;
     }
 
+    //serve
     if (command != "serve")
     {
         Logger::error(
@@ -215,36 +198,12 @@ int main(
         return 1;
     }
 
-    // --------------------------------------------------
-    // Everything below this point belongs to serve mode.
-    // --------------------------------------------------
-
     //backfill missing data in case downtime
     GapRecoveryJob gapRecoveryJob{
         mappingStore,
         backfillPriceRepository,
         backfillJob
     };
-
-    //run in the background
-    std::thread gapRecoveryThread{
-        [&gapRecoveryJob]
-        {
-            try
-            {
-                gapRecoveryJob.run();
-            }
-            catch (const std::exception& e)
-            {
-                Logger::error(
-                    "Gap recovery failed: ",
-                    e.what()
-                );
-            }
-        }
-    };
-
-    gapRecoveryThread.detach();
 
 
     // Live 5-minute price collection.
@@ -255,56 +214,9 @@ int main(
         historyCache
     };
 
-    std::thread priceRefreshThread{
-        [&priceRefreshJob]
-        {
-            using namespace std::chrono;
-
-            while (true)
-            {
-                const auto now =
-                    system_clock::now();
-
-                const auto currentMinute =
-                    duration_cast<minutes>(
-                        now.time_since_epoch()
-                    );
-
-                const auto nextFiveMinutes =
-                    ((currentMinute.count() / 5) + 1) * 5;
-
-                const auto nextRun =
-                    system_clock::time_point{
-                        minutes{
-                            nextFiveMinutes
-                        }
-                    } +
-                    seconds{10};
-
-                std::this_thread::sleep_until(
-                    nextRun
-                );
-
-                try
-                {
-                    priceRefreshJob.execute();
-                }
-                catch (const std::exception& e)
-                {
-                    Logger::error(
-                        "5m price refresh failed: ",
-                        e.what()
-                    );
-                }
-            }
-        }
-    };
-
-    priceRefreshThread.detach();
-
-    Logger::info(
-        "Price refresh worker launched"
-    );
+    startMappingRefreshWorker(mappingJob);
+    startGapRecoveryWorker(gapRecoveryJob);
+    startPriceRefreshWorker(priceRefreshJob);
 
 
     //init crow
@@ -384,7 +296,7 @@ int main(
     });
 
     CROW_ROUTE(app, "/icons/<int>.png")
-    ([&iconDownloader](int id)
+    ([](int id)
     {
         const auto path =
             std::filesystem::path{"/app/data/icons"} /

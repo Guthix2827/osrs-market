@@ -42,6 +42,8 @@ Implemented:
 - Docker development environment
 - Production Docker Compose stack with Nginx frontend proxy and service health checks
 - PostgreSQL first-run schema initialization from `backend/sql`
+- Backend SQL migration runner for incremental schema updates
+- Non-blocking backend startup workers for mapping refresh, gap recovery, icons, and price collection
 - Interactive chart zoom with synchronized price, volume, and trade distribution data
 - Persistent client-side watchlist with slide-out drawer, drag-and-drop ordering, and per-item range selection
 - Watchlist midpoint price tracking with 30m, 1h, 6h, 12h, and 24h comparisons
@@ -56,7 +58,6 @@ Planned / next steps:
 - Share functionality
 - Additional market statistics and aggregation
 - WebSocket live price updates for actively viewed items (instant buy / sell)
-- SQL migration runner for incremental database schema updates
 - Further frontend and backend performance hardening
 - Historical price retention and rollup: retain high-resolution
   5-minute market data for the recent 24-hour window, aggregate older
@@ -318,6 +319,24 @@ Historical storage may later be partitioned or aggregated as the dataset grows.
 
 ---
 
+# Database Migrations
+
+Fresh PostgreSQL volumes are initialized from:
+
+backend/sql
+
+Incremental schema changes after the initial database setup belong in:
+
+backend/migrations
+
+The backend runs pending migration files on startup before repositories, caches, workers, or Crow routes are initialized.
+
+Applied migrations are recorded in schema_migrations, so each file runs only once.
+
+The schema_migrations table is part of the base SQL initialization for new databases.
+
+---
+
 # In-Memory Stores
 
 PostgreSQL is the durable source of data, but frequently accessed current state is also kept in memory.
@@ -363,6 +382,8 @@ main()
  |
  +--> Read DATABASE_URL
  |
+ +--> Run pending database migrations
+ |
  +--> Connect to PostgreSQL
  |      |
  |      +--> item database connection
@@ -387,19 +408,33 @@ main()
  |      |
  |      +--> Store current item metadata in RAM
  |
- +--> Refresh item mapping
- |
- +--> Check latest global market timestamp
- |      |
- |      +--> Recent --> no recovery
- |      |
- |      +--> Gap detected --> start GapRecoveryJob
- |
- +--> Start IconDownloadWorker thread
- |
- +--> Start FiveMinutePriceRefreshJob thread
+ +--> Launch background workers
+        |
+        +--> MappingRefreshJob
+        |
+        +--> GapRecoveryJob
+        |
+        +--> IconDownloadWorker
+        |
+        +--> FiveMinutePriceRefreshJob
  |
  +--> Start Crow HTTP server
+```
+
+The HTTP server serves from the cached PostgreSQL state while the fresh item mapping sync runs in the background. When the sync completes, it replaces `MappingStore`.
+
+This keeps Crow responsive during local development and production restarts even when item synchronization takes time.
+
+The `backfill-all` command is different: it runs the mapping refresh synchronously before full history backfill because the backfill job needs a populated `MappingStore`.
+
+```text
+backfill-all
+ |
+ +--> Refresh item mapping
+ |
+ +--> Run FullHistoryBackfillJob
+ |
+ +--> Exit
 ```
 
 ---
@@ -733,7 +768,9 @@ The backend and PostgreSQL services do not need to be publicly exposed; communic
 
 Docker health checks are configured for PostgreSQL, the backend API, and the frontend. The frontend waits for the backend to become healthy, while the backend waits for PostgreSQL.
 
-On a fresh PostgreSQL volume, SQL files from `backend/sql` are mounted into `/docker-entrypoint-initdb.d` and executed automatically during first-time database initialization. Existing initialized volumes are left unchanged.
+On a fresh PostgreSQL volume, SQL files from `backend/sql` are mounted into `/docker-entrypoint-initdb.d` and executed automatically during first-time database initialization. Existing initialized volumes are left unchanged by PostgreSQL init scripts.
+
+Incremental schema changes after first initialization are handled by the backend migration runner using SQL files from `backend/migrations`.
 
 ## Development
 
@@ -937,7 +974,7 @@ Example response:
 }
 ```
 
-The values are historical reference prices derived from the closest available points in the cached 24-hour history. The reference values are historical midpoint prices derived from the closest
+The reference values are historical midpoint prices derived from the closest
 available points in the cached 24-hour history. `currentMidPrice` represents
 the current market midpoint used by the frontend for range and watchlist
 price-change calculations.
