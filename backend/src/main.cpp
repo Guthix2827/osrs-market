@@ -217,6 +217,7 @@ int main(
     startMappingRefreshWorker(mappingJob);
     startGapRecoveryWorker(gapRecoveryJob);
     startPriceRefreshWorker(priceRefreshJob);
+    startPriceBackfillWorker(backfillQueue, backfillJob);
 
 
     //init crow
@@ -351,7 +352,8 @@ int main(
     CROW_ROUTE(app, "/api/items/<int>/history")
     ([&historyRepository,
     &historyCache,
-    &backfillPolicy](
+    &backfillPolicy,
+    &backfillQueue](
         const crow::request& req,
         int itemId
     )
@@ -514,6 +516,56 @@ int main(
                 " range=",
                 range
             );
+
+            const std::string backfillLookback =
+                range == "30d"
+                    ? "1y"
+                    : range;
+
+            std::chrono::seconds refreshAfter;
+
+            if (backfillLookback == "24h")
+            {
+                refreshAfter =
+                    std::chrono::minutes{30};
+            }
+            else if (backfillLookback == "7d")
+            {
+                refreshAfter =
+                    std::chrono::hours{6};
+            }
+            else
+            {
+                refreshAfter =
+                    std::chrono::hours{24};
+            }
+
+            const bool needsBackfill =
+                backfillPolicy.needsLookback(
+                    itemId,
+                    backfillLookback,
+                    refreshAfter
+                );
+            
+            if (!needsBackfill)
+            {
+                filterPriceOutliers(points);
+
+                historyCache.set(
+                    itemId,
+                    range,
+                    points
+                );
+            }
+            else
+            {
+                backfillQueue.push(
+                    PriceBackfillRequest{
+                        itemId,
+                        backfillLookback
+                    }
+                );
+            }
         }
 
         //

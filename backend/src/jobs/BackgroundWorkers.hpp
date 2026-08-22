@@ -1,5 +1,8 @@
 #pragma once
 
+#include "PriceBackfillJob.hpp"
+#include "PriceBackfillRequest.hpp"
+#include "JobQueue.hpp"
 #include "FiveMinutePriceRefreshJob.hpp"
 #include "GapRecoveryJob.hpp"
 #include "IconDownloadWorker.hpp"
@@ -15,4 +18,9 @@ void startGapRecoveryWorker(
 
 void startPriceRefreshWorker(
     FiveMinutePriceRefreshJob& priceRefreshJob
+);
+
+void startPriceBackfillWorker(
+    JobQueue<PriceBackfillRequest>& backfillQueue,
+    PriceBackfillJob& backfillJob
 );
