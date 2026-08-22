@@ -51,6 +51,7 @@ Implemented:
 - Watched-since marker on the price history chart
 - Watch-summary API backed by the shared `PriceHistoryCache`
 - Per-item watchlist summary refresh scheduling with localStorage persistence
+- Reliable historical backfill: Historical price points now use the timestamps supplied by the Wiki API. Missing ranges are queued for background backfill when requested, while successful backfills are tracked separately from actual trade coverage. This correctly supports new, sparse, and rarely traded items without repeatedly downloading the same history.
 
 Planned / next steps:
 
@@ -63,6 +64,7 @@ Planned / next steps:
   5-minute market data for the recent 24-hour window, aggregate older
   data into hourly history, archive raw events for future analytics,
   and remove expired high-resolution rows from the live database
+- Item lifecycle validation: Detect and store an item's official release date or earliest valid market date when it first appears in the mapping. Historical queries and backfills will use this boundary to reject impossible records from before the item's release. This will also protect against reused item IDs previously associated with temporary League, Deadman Mode, beta, or removed content.
 
 ---
 
