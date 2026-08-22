@@ -46,6 +46,8 @@ add_executable(
     osrs-market-backend
 
     src/database/Database.cpp
+    src/database/DatabaseMigrator.cpp
+    src/database/MigrationRunner.cpp
 
     src/main.cpp
 
@@ -53,7 +55,9 @@ add_executable(
     src/mapping/MappingStore.cpp
     
     src/icons/IconDownloader.cpp
+    src/icons/IconSubsystem.cpp
 
+    src/jobs/BackgroundWorkers.cpp
     src/jobs/MappingRefreshJob.cpp
     src/jobs/FiveMinutePriceRefreshJob.cpp
     src/jobs/PriceBackfillJob.cpp

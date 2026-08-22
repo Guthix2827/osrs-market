@@ -12,6 +12,45 @@
 #include <cstddef>
 #include <vector>
 
+namespace
+{
+    struct MappingRefreshStats
+    {
+        std::size_t syncedItems = 0;
+        std::size_t queuedIcons = 0;
+        std::size_t excludedItems = 0;
+    };
+
+    bool queueIconIfMissing(
+        const ItemMapping& item,
+        IconDownloader& iconDownloader,
+        JobQueue<IconDownloadJob>& iconQueue
+    )
+    {
+        if (item.icon.empty())
+        {
+            return false;
+        }
+
+        if (!iconDownloader.shouldDownload(
+                item.id,
+                item.icon
+            ))
+        {
+            return false;
+        }
+
+        iconQueue.push(
+            IconDownloadJob{
+                .itemId = item.id,
+                .filename = item.icon
+            }
+        );
+
+        return true;
+    }
+}
+
 MappingRefreshJob::MappingRefreshJob(
     MappingClient& client,
     MappingStore& store,
@@ -39,9 +78,6 @@ void MappingRefreshJob::execute()
             "Refreshing OSRS item mapping..."
         );
 
-        //
-        // Fetch mapping
-        //
         const auto fetchStartedAt = Clock::now();
 
         const auto items =
@@ -62,16 +98,10 @@ void MappingRefreshJob::execute()
             "ms"
         );
 
-
-        //
-        // Process mapping
-        //
         std::vector<ItemMapping> filteredItems;
         filteredItems.reserve(items.size());
 
-        std::size_t syncedItems = 0;
-        std::size_t queuedIcons = 0;
-        std::size_t excludedItems = 0;
+        MappingRefreshStats stats;
 
         const auto syncStartedAt = Clock::now();
 
@@ -79,7 +109,7 @@ void MappingRefreshJob::execute()
         {
             if (!ItemFilter::shouldInclude(item.id))
             {
-                ++excludedItems;
+                ++stats.excludedItems;
                 continue;
             }
 
@@ -87,41 +117,19 @@ void MappingRefreshJob::execute()
 
             filteredItems.push_back(item);
 
-            ++syncedItems;
+            ++stats.syncedItems;
 
-            if (
-                syncedItems % 500 == 0
-            )
+            if (stats.syncedItems % 500 == 0)
             {
                 Logger::info(
                     "Mapping sync progress: ",
-                    syncedItems,
+                    stats.syncedItems,
                     " items processed"
                 );
             }
 
-            //
-            // Queue missing icon
-            //
-            if (item.icon.empty())
-                continue;
-
-            if (!iconDownloader_.shouldDownload(
-                    item.id,
-                    item.icon
-                ))
-            {
-                continue;
-            }
-
-            iconQueue_.push(
-                IconDownloadJob{
-                    .itemId = item.id,
-                    .filename = item.icon
-                }
-            );
-
-            ++queuedIcons;
+            if (queueIconIfMissing(item, iconDownloader_, iconQueue_))
+                ++stats.queuedIcons;
         }
 
         const auto syncFinishedAt = Clock::now();
@@ -131,16 +139,8 @@ void MappingRefreshJob::execute()
                 syncFinishedAt - syncStartedAt
             );
 
-
-        //
-        // Replace in-memory mapping
-        //
         store_.replace(filteredItems);
 
-
-        //
-        // Summary
-        //
         const auto finishedAt = Clock::now();
 
         const auto totalDuration =
@@ -152,8 +152,8 @@ void MappingRefreshJob::execute()
             "Mapping refresh complete: ",
             "fetched=", items.size(),
             " included=", filteredItems.size(),
-            " excluded=", excludedItems,
-            " iconsQueued=", queuedIcons,
+            " excluded=", stats.excludedItems,
+            " iconsQueued=", stats.queuedIcons,
             " fetchTime=", fetchDuration.count(), "ms",
             " syncTime=", syncDuration.count(), "ms",
             " totalTime=", totalDuration.count(), "ms"

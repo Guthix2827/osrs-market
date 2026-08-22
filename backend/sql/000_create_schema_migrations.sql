@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS schema_migrations
+(
+    migration TEXT PRIMARY KEY,
+    executed_at TIMESTAMPTZ NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+);
