@@ -155,6 +155,12 @@ export default function ItemPage() {
 
         loadHistory();
 
+        if (range !== '24H') {
+            return () => {
+                controller.abort();
+            };
+        }
+
         return () => {
             controller.abort();
         };
@@ -169,23 +175,23 @@ export default function ItemPage() {
             return;
         }
 
-        const refreshHistory = async () => {
+        const refreshLatestPrice = async () => {
             try {
-                const [history, latestPrice] = await Promise.all([
-                    itemService.getPriceHistory(itemId, range),
-                    itemService.getLatestPrice(itemId),
-                ]);
+                const latestPrice =
+                    await itemService.getLatestPrice(
+                        itemId,
+                    );
 
-                setHistoryByRange((current) => ({
-                    ...current,
-                    [range]: history,
-                }));
+                setLatestPrice(
+                    latestPrice,
+                );
 
-                setLatestPrice(latestPrice);
-                setLatestFetchedAt(Date.now());
+                setLatestFetchedAt(
+                    Date.now(),
+                );
             } catch (error) {
                 console.error(
-                    "History refresh failed",
+                    'Latest price refresh failed',
                     error,
                 );
             }
@@ -193,12 +199,80 @@ export default function ItemPage() {
 
         const interval =
             window.setInterval(
-                refreshHistory,
+                refreshLatestPrice,
                 60_000,
             );
 
         return () => {
-            window.clearInterval(interval);
+            window.clearInterval(
+                interval,
+            );
+        };
+    }, [itemId]);
+
+    const FIVE_MINUTES = 5 * 60_000;
+    const UPDATE_DELAY = 5_000;
+    useEffect(() => {
+        if (!Number.isInteger(itemId) || range !== '24H') {
+            return;
+        }
+
+        let timeout: number;
+        let cancelled = false;
+
+        const refreshHistory = async () => {
+            try {
+                const history =
+                    await itemService.getPriceHistory(
+                        itemId,
+                        range,
+                    );
+
+                if (cancelled) {
+                    return;
+                }
+
+                setHistoryByRange((current) => ({
+                    ...current,
+                    [range]: history,
+                }));
+            } catch (error) {
+                if (!cancelled) {
+                    console.error(
+                        'History refresh failed',
+                        error,
+                    );
+                }
+            }
+        };
+
+        const scheduleNextRefresh = () => {
+            const now =
+                Date.now();
+
+            const timeUntilNextBoundary = FIVE_MINUTES - now % FIVE_MINUTES;
+            timeout =
+                window.setTimeout(
+                    async () => {
+                        await refreshHistory();
+
+                        if (!cancelled) {
+                            scheduleNextRefresh();
+                        }
+                    },
+                    timeUntilNextBoundary +
+                    UPDATE_DELAY,
+                );
+        };
+
+        scheduleNextRefresh();
+
+        return () => {
+            cancelled = true;
+
+            window.clearTimeout(
+                timeout,
+            );
         };
     }, [itemId, range]);
 

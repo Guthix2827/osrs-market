@@ -52,6 +52,8 @@ Implemented:
 - Watch-summary API backed by the shared `PriceHistoryCache`
 - Per-item watchlist summary refresh scheduling with localStorage persistence
 - Reliable historical backfill: Historical price points now use the timestamps supplied by the Wiki API. Missing ranges are queued for background backfill when requested, while successful backfills are tracked separately from actual trade coverage. This correctly supports new, sparse, and rarely traded items without repeatedly downloading the same history.
+- Efficient chart refresh: Live prices continue to update every minute, while the 24-hour chart refreshes shortly after each five-minute market interval. Longer historical ranges are loaded only when selected, reducing unnecessary API and database requests.
+
 
 Planned / next steps:
 
