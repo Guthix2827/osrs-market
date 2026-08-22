@@ -41,6 +41,10 @@ COPY --from=build \
     /app/build/osrs-market-backend \
     /app/osrs-market-backend
 
+COPY --from=build \
+    /app/migrations \
+    /app/migrations
+
 RUN mkdir -p /app/data
 
 EXPOSE 8080
