@@ -107,3 +107,64 @@ void startPriceRefreshWorker(
         "Price refresh worker launched"
     );
 }
+
+void startPriceBackfillWorker(
+    JobQueue<PriceBackfillRequest>& queue,
+    PriceBackfillJob& backfillJob
+)
+{
+    std::thread backfillThread{
+        [&queue, &backfillJob]
+        {
+            Logger::info(
+                "Price backfill worker started"
+            );
+
+            while (const auto request = queue.pop())
+            {
+                try
+                {
+                    Logger::info(
+                        "Processing queued backfill: item=",
+                        request->itemId,
+                        " lookback=",
+                        request->lookback
+                    );
+
+                    backfillJob.execute(
+                        request->itemId,
+                        request->lookback
+                    );
+
+                    Logger::info(
+                        "Queued backfill complete: item=",
+                        request->itemId,
+                        " lookback=",
+                        request->lookback
+                    );
+                }
+                catch (const std::exception& e)
+                {
+                    Logger::error(
+                        "Queued backfill failed: item=",
+                        request->itemId,
+                        " lookback=",
+                        request->lookback,
+                        " error=",
+                        e.what()
+                    );
+                }
+            }
+
+            Logger::info(
+                "Price backfill worker stopped"
+            );
+        }
+    };
+
+    backfillThread.detach();
+
+    Logger::info(
+        "Price backfill worker launched"
+    );
+}

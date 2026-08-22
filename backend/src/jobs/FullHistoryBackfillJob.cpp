@@ -44,7 +44,6 @@ void FullHistoryBackfillJob::run()
             if (backfillPolicy_.needsLookback(
                     item.id,
                     "24h",
-                    24h,
                     30min
                 ))
             {
@@ -57,7 +56,6 @@ void FullHistoryBackfillJob::run()
             if (backfillPolicy_.needsLookback(
                     item.id,
                     "7d",
-                    7 * 24h,
                     6h
                 ))
             {
@@ -70,7 +68,6 @@ void FullHistoryBackfillJob::run()
             if (backfillPolicy_.needsLookback(
                     item.id,
                     "1y",
-                    365 * 24h,
                     24h
                 ))
             {

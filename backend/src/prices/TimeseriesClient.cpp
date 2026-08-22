@@ -10,6 +10,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 
 namespace
 {
@@ -25,10 +26,40 @@ std::optional<std::int64_t> getOptionalInt64(
     const char* key
 )
 {
-    if (!object.contains(key) || object[key].is_null())
+    if (!object.contains(key) ||
+        object.at(key).is_null())
+    {
         return std::nullopt;
+    }
 
-    return object[key].get<std::int64_t>();
+    if (!object.at(key).is_number_integer())
+    {
+        throw std::runtime_error(
+            std::string{
+                "Invalid timeseries point: "
+            } + key + " must be an integer or null"
+        );
+    }
+
+    return object.at(key).get<std::int64_t>();
+}
+
+std::int64_t getRequiredInt64(
+    const nlohmann::json& object,
+    const char* key
+)
+{
+    if (!object.contains(key) ||
+        !object.at(key).is_number_integer())
+    {
+        throw std::runtime_error(
+            std::string{
+                "Invalid timeseries response: missing or invalid "
+            } + key
+        );
+    }
+
+    return object.at(key).get<std::int64_t>();
 }
 
 bool supportedLookback(
@@ -66,17 +97,35 @@ TimeseriesResponse TimeseriesClient::fetch(
         std::chrono::steady_clock::now();
 
     const auto response = cpr::Get(
-        cpr::Url{TIMESERIES_URL},
+        cpr::Url{
+            TIMESERIES_URL
+        },
         cpr::Parameters{
-            {"id", std::to_string(itemId)},
-            {"lookback", std::string(lookback)}
+            {
+                "id",
+                std::to_string(itemId)
+            },
+            {
+                "lookback",
+                std::string{lookback}
+            }
         },
         cpr::Header{
-            {"User-Agent", USER_AGENT},
-            {"Accept", "application/json"}
+            {
+                "User-Agent",
+                USER_AGENT
+            },
+            {
+                "Accept",
+                "application/json"
+            }
         },
-        cpr::ConnectTimeout{5000},
-        cpr::Timeout{15000}
+        cpr::ConnectTimeout{
+            5000
+        },
+        cpr::Timeout{
+            15000
+        }
     );
 
     const auto finishedAt =
@@ -105,52 +154,127 @@ TimeseriesResponse TimeseriesClient::fetch(
         );
     }
 
-    const auto json =
-        nlohmann::json::parse(response.text);
+    nlohmann::json json;
 
-    if (!json.contains("data") ||
-        !json["data"].is_array())
+    try
+    {
+        json =
+            nlohmann::json::parse(
+                response.text
+            );
+    }
+    catch (const nlohmann::json::exception& exception)
     {
         throw std::runtime_error(
-            "Invalid timeseries response: missing data array"
+            "Invalid timeseries JSON: " +
+            std::string{
+                exception.what()
+            }
+        );
+    }
+
+    if (!json.is_object())
+    {
+        throw std::runtime_error(
+            "Invalid timeseries response: "
+            "expected an object"
+        );
+    }
+
+    if (!json.contains("data") ||
+        !json.at("data").is_array())
+    {
+        throw std::runtime_error(
+            "Invalid timeseries response: "
+            "missing data array"
         );
     }
 
     TimeseriesResponse result;
 
-    result.itemId = itemId;
+    result.itemId =
+        itemId;
+
     result.startTimestamp =
-        json.at("startTimestamp").get<std::int64_t>();
+        getRequiredInt64(
+            json,
+            "startTimestamp"
+        );
 
     result.endTimestamp =
-        json.at("endTimestamp").get<std::int64_t>();
+        getRequiredInt64(
+            json,
+            "endTimestamp"
+        );
 
     result.timestep =
-        json.at("timestep").get<std::int64_t>();
+        getRequiredInt64(
+            json,
+            "timestep"
+        );
+
+    if (result.startTimestamp >
+        result.endTimestamp)
+    {
+        throw std::runtime_error(
+            "Invalid timeseries response: "
+            "startTimestamp is after endTimestamp"
+        );
+    }
+
+    if (result.timestep <= 0)
+    {
+        throw std::runtime_error(
+            "Invalid timeseries response: "
+            "timestep must be positive"
+        );
+    }
 
     const auto& data =
-        json["data"];
+        json.at("data");
 
     result.points.reserve(
         data.size()
     );
 
-    for (std::size_t i = 0;
-         i < data.size();
-         ++i)
+    for (const auto& entry : data)
     {
-        const auto& entry =
-            data[i];
+        if (!entry.is_object())
+        {
+            throw std::runtime_error(
+                "Invalid timeseries response: "
+                "data entry must be an object"
+            );
+        }
 
         PricePoint point;
 
         point.itemId =
             itemId;
 
+        /*
+         * The response is sparse. Each entry contains
+         * its own timestamp and does not necessarily
+         * correspond to:
+         *
+         * startTimestamp + index * timestep
+         */
         point.timestamp =
-            result.startTimestamp +
-            static_cast<std::int64_t>(i) *
-            result.timestep;
+            getRequiredInt64(
+                entry,
+                "timestamp"
+            );
+
+        if (point.timestamp <
+                result.startTimestamp ||
+            point.timestamp >
+                result.endTimestamp)
+        {
+            throw std::runtime_error(
+                "Invalid timeseries point: "
+                "timestamp is outside response range"
+            );
+        }
 
         point.avgHighPrice =
             getOptionalInt64(
@@ -165,16 +289,16 @@ TimeseriesResponse TimeseriesClient::fetch(
             );
 
         point.highPriceVolume =
-            entry.value(
-                "highPriceVolume",
-                std::int64_t{0}
-            );
+            getOptionalInt64(
+                entry,
+                "highPriceVolume"
+            ).value_or(0);
 
         point.lowPriceVolume =
-            entry.value(
-                "lowPriceVolume",
-                std::int64_t{0}
-            );
+            getOptionalInt64(
+                entry,
+                "lowPriceVolume"
+            ).value_or(0);
 
         result.points.push_back(
             std::move(point)

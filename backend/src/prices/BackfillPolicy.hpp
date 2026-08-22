@@ -17,7 +17,6 @@ public:
     bool needsLookback(
         std::int32_t itemId,
         std::string_view lookback,
-        std::chrono::seconds coverage,
         std::chrono::seconds refreshAfter
     );
 
