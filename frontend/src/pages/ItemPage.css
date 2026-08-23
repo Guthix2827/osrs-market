@@ -68,6 +68,8 @@
     font-weight: 700;
 
     white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
 }
 
 

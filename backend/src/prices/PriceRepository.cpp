@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <utility>
 #include <vector>
+#include <mutex>
 
 PriceRepository::PriceRepository(
     Database& database
@@ -158,6 +159,10 @@ PriceRepository::findHistory(
     HistoryRange range
 )
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work transaction{
         database_.connection()
     };

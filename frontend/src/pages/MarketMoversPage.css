@@ -1,0 +1,933 @@
+.market-movers-page {
+    max-width: 1480px;
+    margin: 0 auto;
+    padding: 24px 28px 34px;
+}
+
+.market-movers-snapshot-content h3 {
+    font-size: 21px;
+    margin-bottom: 10px;
+}
+
+.market-movers-snapshot-content dl div {
+    align-items: baseline;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: auto minmax(120px, 1fr);
+}
+
+.market-movers-snapshot-content dd {
+    text-align: right;
+}
+
+.market-movers-hero {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.market-movers-hero h1 {
+    color: #f2a93b;
+    font-size: 40px;
+    line-height: 1.1;
+    margin: 0 0 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.market-movers-hero p {
+    color: #f0ede7;
+    font-size: 18px;
+    margin: 0;
+}
+
+.market-movers-snapshot {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+    margin-bottom: 20px;
+}
+
+.market-movers-snapshot-card {
+    background: #0f1411;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.market-movers-snapshot-card h2 {
+    background: #151a17;
+    border-bottom: 1px solid rgba(255, 201, 40, 0.22);
+    color: #ffc928;
+
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.2;
+
+    margin: 0;
+    padding: 10px 14px;
+
+    text-align: left;
+}
+
+.market-movers-snapshot-body {
+    align-items: center;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    padding: 0 16px 20px;
+}
+
+.market-movers-snapshot-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.market-movers-snapshot-icon {
+    max-width: 34px;
+    max-height: 34px;
+}
+
+.market-movers-snapshot-content h3 {
+    overflow: hidden;
+
+    color: #f4efe4;
+
+    font-family: inherit;
+    font-size: 19px;
+    margin-bottom: 8px;
+    font-weight: 700;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.market-movers-snapshot-content dl {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+}
+
+.market-movers-snapshot-content dl div {
+    align-items: baseline;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(92px, max-content) minmax(0, 1fr);
+}
+
+.market-movers-snapshot-content dt {
+    color: #bdb7ad;
+    font-size: 14px;
+}
+
+.market-movers-snapshot-content dd {
+    overflow-wrap: anywhere;
+
+    color: #f4efe4;
+
+    font-size: 15px;
+    margin: 0;
+    text-align: right;
+}
+
+.market-movers-panel {
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 8px;
+    overflow: clip;
+}
+
+.market-movers-toolbar {
+    align-items: stretch;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    padding: 0 14px;
+}
+
+.market-movers-tabs {
+    align-items: stretch;
+    display: flex;
+    gap: 18px;
+}
+
+.market-movers-tab {
+    background: transparent;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    color: #f1eee5;
+    cursor: pointer;
+    font: inherit;
+    font-size: 18px;
+    padding: 18px 18px 14px;
+}
+
+.market-movers-tab[aria-selected='true'] {
+    border-bottom-color: #f0b623;
+    color: #ffc928;
+}
+
+.market-movers-range {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+}
+
+.market-movers-range span {
+    color: #d6d0c5;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.market-movers-range-buttons {
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 6px;
+    display: flex;
+    overflow: hidden;
+}
+
+.market-movers-range-button {
+    background: rgba(255, 255, 255, 0.025);
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f1eee5;
+    cursor: pointer;
+    font: inherit;
+    font-size: 15px;
+    min-width: 72px;
+    padding: 10px 14px;
+}
+
+.market-movers-range-button:first-child {
+    border-left: 0;
+}
+
+.market-movers-range-button[aria-pressed='true'] {
+    background:
+            linear-gradient(
+                    180deg,
+                    #f4b537,
+                    #ba7815
+            );
+    color: #160f07;
+    font-weight: 700;
+}
+
+.market-movers-table-wrap {
+    max-height: calc(100vh - 220px);
+    overflow: auto;
+}
+
+.market-movers-table {
+    border-collapse: collapse;
+    min-width: 900px;
+    width: 100%;
+}
+
+.market-movers-table th,
+.market-movers-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 11px 28px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.market-movers-table th {
+    border-bottom: 1px solid rgba(255, 201, 40, 0.28);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.55);
+    color: #ffc928;
+    font-size: 15px;
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+.market-movers-table th:first-child,
+.market-movers-table td:first-child {
+    text-align: left;
+}
+
+.market-movers-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.market-movers-item {
+    align-items: center;
+    color: #ffc928;
+    display: inline-flex;
+    gap: 16px;
+    text-decoration: none;
+}
+
+.market-movers-item:hover {
+    color: #ffd966;
+}
+
+.market-movers-item-icon {
+    height: 32px;
+    image-rendering: pixelated;
+    object-fit: contain;
+    width: 32px;
+}
+
+.market-movers-positive {
+    color: #9be019;
+}
+
+.market-movers-negative {
+    color: #ff3030;
+}
+
+.market-movers-table th {
+    color: #ffc928;
+    font-size: 15px;
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+/* table colors */
+.market-movers-panel {
+    background: #0f1411;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.market-movers-toolbar {
+    background: #101511;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.market-movers-table {
+    background: #0c100e;
+}
+
+.market-movers-table th {
+    background: #151a17;
+    border-bottom: 1px solid rgba(255, 201, 40, 0.28);
+    color: #ffc928;
+}
+
+.market-movers-table tbody tr {
+    background: #0c100e;
+}
+
+.market-movers-table tbody tr:nth-child(even) {
+    background: #101511;
+}
+
+.market-movers-table tbody tr:hover {
+    background: #161c18;
+}
+
+.market-movers-table td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.075);
+    color: #e9e2d5;
+}
+
+.market-movers-table td:first-child {
+    color: #ffc928;
+}
+
+.market-movers-item {
+    color: #ffc928;
+}
+
+.market-movers-positive {
+    color: #9be019;
+}
+
+.market-movers-negative {
+    color: #ff6b2b;
+}
+
+@media (max-width: 1180px) {
+    .market-movers-snapshot {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 960px) {
+    .market-movers-snapshot-card h2 {
+        font-size: 13px;
+        text-align: left;
+    }
+
+    .market-movers-page {
+        padding: 20px 16px 28px;
+    }
+
+    .market-movers-snapshot {
+        grid-template-columns: 1fr;
+    }
+
+    .market-movers-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 10px;
+        padding: 0 12px 14px;
+    }
+
+    .market-movers-tabs {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+
+    .market-movers-tab {
+        flex: 0 0 auto;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    .market-movers-range {
+        align-items: flex-start;
+        flex-direction: column;
+        width: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+    .market-movers-hero h1 {
+        font-size: 32px;
+    }
+
+    .market-movers-hero p {
+        font-size: 16px;
+    }
+
+    .market-movers-snapshot-body {
+        gap: 12px;
+        grid-template-columns: 44px minmax(0, 1fr);
+        padding: 18px 14px;
+    }
+
+    .market-movers-snapshot-icon {
+        max-height: 38px;
+        max-width: 38px;
+    }
+
+    .market-movers-snapshot-content h3 {
+        font-size: 20px;
+    }
+
+    .market-movers-snapshot-content dl div {
+        align-items: start;
+        gap: 4px;
+        grid-template-columns: 1fr;
+    }
+
+    .market-movers-snapshot-content dd {
+        text-align: left;
+        white-space: normal;
+    }
+
+    .market-movers-range-buttons {
+        width: 100%;
+    }
+
+    .market-movers-range-button {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+.market-movers-mobile-list {
+    display: none;
+}
+
+@media (min-width: 721px) and (max-width: 960px) {
+    .market-movers-page {
+        padding: 22px 18px 32px;
+    }
+
+    .market-movers-hero {
+        margin-bottom: 18px;
+    }
+
+    .market-movers-hero h1 {
+        font-size: 38px;
+        margin-bottom: 8px;
+    }
+
+    .market-movers-hero p {
+        font-size: 17px;
+    }
+
+    .market-movers-mobile-list {
+        display: none;
+    }
+
+    .market-movers-table-wrap {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .market-movers-snapshot {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-bottom: 18px;
+    }
+
+    .market-movers-snapshot-body {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+
+        min-height: 0;
+        padding: 13px 12px;
+    }
+
+    .market-movers-snapshot-icon {
+        max-width: 30px;
+        max-height: 30px;
+    }
+
+    .market-movers-snapshot-content h3 {
+        overflow: hidden;
+
+        margin: 0 0 8px;
+
+        color: #f4efe4;
+
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 600;
+
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .market-movers-snapshot-content dl {
+        display: grid;
+        gap: 5px;
+    }
+
+    .market-movers-snapshot-content dl div {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    .market-movers-snapshot-content dt {
+        color: #9f9a90;
+        font-size: 12px;
+    }
+
+    .market-movers-snapshot-content dd {
+        overflow: hidden;
+
+        color: #d8d2c8;
+
+        font-size: 13px;
+        text-align: left;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .market-movers-toolbar {
+        align-items: center;
+        flex-direction: row;
+        gap: 16px;
+        padding: 0 12px;
+    }
+
+    .market-movers-tabs {
+        gap: 18px;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .market-movers-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .market-movers-tab {
+        flex: 0 0 auto;
+        font-size: 16px;
+        padding: 15px 0 11px;
+        white-space: nowrap;
+    }
+
+    .market-movers-range {
+        align-items: center;
+        flex: 0 0 auto;
+        flex-direction: row;
+        gap: 10px;
+        padding: 10px 0;
+    }
+
+    .market-movers-range span {
+        font-size: 12px;
+    }
+
+    .market-movers-range-button {
+        min-width: 58px;
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+
+    .market-movers-table {
+        min-width: 860px;
+    }
+
+    .market-movers-table th,
+    .market-movers-table td {
+        padding: 11px 18px;
+    }
+}
+
+@media (max-width: 720px) {
+    .market-movers-table-wrap {
+        display: none;
+    }
+
+    .market-movers-mobile-list {
+        display: grid;
+    }
+
+    .market-movers-mobile-row {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .market-movers-mobile-row:last-child {
+        border-bottom: 0;
+    }
+
+    .market-movers-mobile-summary {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        color: inherit;
+        cursor: pointer;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 58px;
+        padding: 12px 14px;
+        text-align: left;
+        width: 100%;
+    }
+
+    .market-movers-mobile-summary:hover,
+    .market-movers-mobile-summary[aria-expanded='true'] {
+        background: rgba(255, 201, 40, 0.035);
+    }
+
+    .market-movers-mobile-item {
+        align-items: center;
+        color: #ffc928;
+        display: flex;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .market-movers-mobile-item span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .market-movers-mobile-change {
+        align-items: center;
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        min-width: 88px;
+        white-space: nowrap;
+    }
+
+    .market-movers-mobile-chevron {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        color: #d8d2c8;
+        display: inline-flex;
+        font-size: 14px;
+        height: 22px;
+        justify-content: center;
+        line-height: 1;
+        width: 22px;
+    }
+
+    .market-movers-mobile-summary[aria-expanded='true'] .market-movers-mobile-chevron {
+        background: rgba(255, 201, 40, 0.12);
+        border-color: rgba(255, 201, 40, 0.45);
+        color: #ffc928;
+    }
+
+    .market-movers-mobile-details {
+        background: rgba(255, 201, 40, 0.018);
+        border: 1px solid rgba(255, 201, 40, 0.5);
+        border-radius: 2px;
+        display: grid;
+        gap: 10px;
+        margin: 0 0 14px;
+        padding: 14px 16px 16px;
+    }
+
+    .market-movers-mobile-metric {
+        align-items: baseline;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 20px;
+    }
+
+    .market-movers-mobile-metric span {
+        color: #bdb7ad;
+        font-size: 13px;
+        line-height: 1.35;
+    }
+
+    .market-movers-mobile-metric strong {
+        color: #f8f5ec;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.35;
+        text-align: right;
+    }
+
+    .market-movers-mobile-metric strong.market-movers-positive {
+        color: #9be019;
+    }
+
+    .market-movers-mobile-metric strong.market-movers-negative {
+        color: #ff3030;
+    }
+
+    .market-movers-mobile-link {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        color: #ffc928;
+        font-size: 14px;
+        margin-top: 2px;
+        padding-top: 10px;
+        text-decoration: none;
+    }
+
+    .market-movers-page {
+        padding: 16px 16px 28px;
+    }
+
+    .market-movers-hero {
+        margin-bottom: 14px;
+    }
+
+    .market-movers-hero h1 {
+        font-size: 30px;
+        margin-bottom: 6px;
+    }
+
+    .market-movers-hero p {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+
+    .market-movers-snapshot {
+        background: #101412;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 6px;
+        display: grid;
+        gap: 0;
+        margin-bottom: 14px;
+        overflow: hidden;
+    }
+
+    .market-movers-snapshot-card {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+    }
+
+    .market-movers-snapshot-card:not(:last-child) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .market-movers-snapshot-body {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 10px;
+
+        min-height: 0;
+        padding: 11px 12px;
+    }
+
+    .market-movers-snapshot-icon-wrap {
+        align-self: center;
+    }
+
+    .market-movers-snapshot-icon {
+        max-width: 30px;
+        max-height: 30px;
+    }
+
+    .market-movers-snapshot-content {
+        min-width: 0;
+    }
+
+    .market-movers-snapshot-content h3 {
+        overflow: hidden;
+
+        margin: 0 0 5px;
+
+        color: #f4efe4;
+
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 600;
+
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .market-movers-snapshot-content dl {
+        display: grid;
+        gap: 4px;
+    }
+
+    .market-movers-snapshot-content dl div {
+        display: grid;
+        grid-template-columns: 92px minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .market-movers-snapshot-content dt {
+        color: #9f9a90;
+        font-size: 12px;
+    }
+
+    .market-movers-snapshot-content dd {
+        overflow: hidden;
+
+        color: #d8d2c8;
+
+        font-size: 12px;
+        text-align: right;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .market-movers-toolbar {
+        gap: 8px;
+        padding: 0 12px 12px;
+    }
+
+    .market-movers-tabs {
+        gap: 14px;
+        overflow-x: auto;
+        padding-bottom: 0;
+        scrollbar-width: none;
+    }
+
+    .market-movers-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .market-movers-tab {
+        flex: 0 0 auto;
+        font-size: 16px;
+        padding: 14px 2px 10px;
+        white-space: nowrap;
+    }
+
+    .market-movers-range {
+        gap: 8px;
+        padding: 4px 0 0;
+    }
+
+    .market-movers-range span {
+        font-size: 13px;
+    }
+
+    .market-movers-range-button {
+        font-size: 14px;
+        padding: 9px 10px;
+    }
+
+    .market-movers-mobile-chevron {
+        align-items: center;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        color: #d8d2c8;
+        display: inline-flex;
+        font-size: 14px;
+        height: 22px;
+        justify-content: center;
+        line-height: 1;
+        width: 22px;
+    }
+
+    .market-movers-mobile-summary[aria-expanded='true'] .market-movers-mobile-chevron {
+        background: rgba(255, 201, 40, 0.12);
+        border-color: rgba(255, 201, 40, 0.45);
+        color: #ffc928;
+    }
+
+    .market-movers-panel {
+        border-radius: 6px;
+    }
+
+    .market-movers-toolbar {
+        gap: 8px;
+        padding: 0 12px 10px;
+    }
+
+    .market-movers-tabs {
+        gap: 18px;
+        max-width: 100%;
+        overflow-x: auto;
+        padding: 0;
+
+        scrollbar-width: none;
+    }
+
+    .market-movers-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .market-movers-tab {
+        flex: 0 0 auto;
+
+        font-size: 16px;
+        padding: 12px 0 8px;
+
+        white-space: nowrap;
+    }
+
+    .market-movers-range {
+        align-items: center;
+        flex-direction: row;
+        gap: 10px;
+
+        padding: 2px 0 0;
+        width: 100%;
+    }
+
+    .market-movers-range span {
+        flex: 0 0 auto;
+
+        color: #bdb7ad;
+
+        font-size: 12px;
+    }
+
+    .market-movers-range-buttons {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .market-movers-range-button {
+        flex: 1 1 0;
+
+        min-width: 0;
+        padding: 8px 6px;
+
+        font-size: 13px;
+    }
+}

@@ -63,10 +63,14 @@ add_executable(
     src/jobs/PriceBackfillJob.cpp
     src/jobs/FullHistoryBackfillJob.cpp
     src/jobs/GapRecoveryJob.cpp
+    src/jobs/MarketMoversRefreshJob.cpp
 
     src/items/ItemFilter.cpp
     src/items/ItemRepository.cpp
     src/items/WatchSummary.cpp
+
+    src/market/MarketMovers.cpp
+    src/market/MarketMoversService.cpp
     
     src/prices/FiveMinutePriceClient.cpp
     src/prices/LatestPriceStore.cpp
@@ -76,6 +80,7 @@ add_executable(
 
     src/cache/PriceHistoryCache.cpp
     src/utils/Price.cpp
+    src/utils/Time.cpp
 )
 
 target_include_directories(

@@ -7,6 +7,7 @@
 #include "GapRecoveryJob.hpp"
 #include "IconDownloadWorker.hpp"
 #include "MappingRefreshJob.hpp"
+#include "MarketMoversRefreshJob.hpp"
 
 void startMappingRefreshWorker(
     MappingRefreshJob& mappingJob
@@ -23,4 +24,8 @@ void startPriceRefreshWorker(
 void startPriceBackfillWorker(
     JobQueue<PriceBackfillRequest>& backfillQueue,
     PriceBackfillJob& backfillJob
+);
+
+void startMarketMoversRefreshWorker(
+    MarketMoversRefreshJob& marketMoversRefreshJob
 );

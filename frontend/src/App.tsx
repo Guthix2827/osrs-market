@@ -11,6 +11,7 @@ import { Header } from "./components/Header.tsx";
 import { Footer } from "./components/Footer";
 import "./App.css";
 import {WatchlistProvider} from "./components/watchlist/WatchlistContext.tsx";
+import {MarketMoversPage} from "./pages/MarketMoversPage.tsx";
 
 function App() {
     return (
@@ -38,6 +39,11 @@ function App() {
                                     replace
                                 />
                             }
+                        />
+
+                        <Route
+                            path="/market-movers"
+                            element={<MarketMoversPage/>}
                         />
                     </Routes>
 

@@ -102,17 +102,9 @@ export function Header() {
                     </Link>
 
                     <nav className="market-nav">
-                        <Link to="/items">
-                            Items
+                        <Link to="/market-movers">
+                            Market Movers
                         </Link>
-
-                        <a href="#">
-                            Movers
-                        </a>
-
-                        <a href="#">
-                            Volume
-                        </a>
 
                         <button
                             type="button"
@@ -126,6 +118,32 @@ export function Header() {
                     <div className="market-header-search">
                         <ItemSearch />
                     </div>
+
+                    <button
+                        type="button"
+                        className="mobile-watchlist-button"
+                        aria-label="Open watchlist"
+                        onClick={() => {
+                            openWatchlist();
+                            closeMobileMenu();
+                        }}
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <path
+                                d="M6.5 4.5h11v15l-5.5-3.5-5.5 3.5z"
+                                fill="currentColor"
+                            />
+                        </svg>
+
+                        {items.length > 0 && (
+                            <span className="mobile-watchlist-count">
+                            {items.length}
+                        </span>
+                        )}
+                    </button>
 
                     <button
                         type="button"
@@ -152,25 +170,11 @@ export function Header() {
                 {mobileOpen && (
                     <nav className="mobile-nav">
                         <Link
-                            to="/items"
+                            to="/market-movers"
                             onClick={closeMobileMenu}
                         >
-                            Items
+                            Market Movers
                         </Link>
-
-                        <a
-                            href="#"
-                            onClick={closeMobileMenu}
-                        >
-                            Movers
-                        </a>
-
-                        <a
-                            href="#"
-                            onClick={closeMobileMenu}
-                        >
-                            Volume
-                        </a>
 
                         <button
                             type="button"
