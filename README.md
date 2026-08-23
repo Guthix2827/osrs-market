@@ -57,13 +57,17 @@ Implemented:
 
 Planned / next steps:
 
-- Movers and volume discovery pages
+- User accounts and secure authentication through FusionAuth
+- RuneLite integration for opt-in synchronization of completed Grand Exchange trades
+- Verified merchant portfolios with profit, ROI, risk, and performance tracking
+- Merchant hiscores ranked by verified flipping and merchandising performance
+- Virtual GP investments in public merchant portfolios, with no connection to real GP or money
 - Share functionality
 - Additional market statistics and aggregation
 - WebSocket live price updates for actively viewed items (instant buy / sell)
 - Further frontend and backend performance hardening
 - Historical price retention and rollup: retain high-resolution
-  5-minute market data for the recent 24-hour window, aggregate older
+- 5-minute market data for the recent 24-hour window, aggregate older
   data into hourly history, archive raw events for future analytics,
   and remove expired high-resolution rows from the live database
 - Item lifecycle validation: Detect and store an item's official release date or earliest valid market date when it first appears in the mapping. Historical queries and backfills will use this boundary to reject impossible records from before the item's release. This will also protect against reused item IDs previously associated with temporary League, Deadman Mode, beta, or removed content.
