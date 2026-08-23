@@ -14,6 +14,11 @@ Database::Database(std::string connectionString)
     }
 }
 
+std::mutex& Database::mutex()
+{
+    return mutex_;
+}
+
 pqxx::connection& Database::connection()
 {
     return connection_;

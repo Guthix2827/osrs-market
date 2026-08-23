@@ -1,6 +1,7 @@
 #include "PriceHistoryCache.hpp"
 
 #include <chrono>
+#include <mutex>
 
 std::optional<std::vector<PricePoint>>
 PriceHistoryCache::get(

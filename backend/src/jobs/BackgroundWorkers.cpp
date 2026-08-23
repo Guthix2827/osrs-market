@@ -1,6 +1,7 @@
 #include "BackgroundWorkers.hpp"
 
 #include "../utils/Logger.hpp"
+#include "../utils/Time.hpp"
 
 #include <chrono>
 #include <exception>
@@ -166,5 +167,40 @@ void startPriceBackfillWorker(
 
     Logger::info(
         "Price backfill worker launched"
+    );
+}
+
+void startMarketMoversRefreshWorker(
+    MarketMoversRefreshJob& marketMoversRefreshJob
+)
+{
+    std::thread marketMoversThread{
+        [&marketMoversRefreshJob]
+        {
+            using namespace std::chrono;
+
+            marketMoversRefreshJob.execute();
+
+            while (true)
+            {
+                const auto waitSeconds =
+                    secondsUntilNextUtcMidnight() +
+                    120;
+
+                std::this_thread::sleep_for(
+                    seconds{
+                        waitSeconds
+                    }
+                );
+
+                marketMoversRefreshJob.execute();
+            }
+        }
+    };
+
+    marketMoversThread.detach();
+
+    Logger::info(
+        "Market movers refresh worker launched"
     );
 }

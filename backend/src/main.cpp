@@ -14,6 +14,7 @@
 #include "jobs/PriceBackfillJob.hpp"
 #include "jobs/FullHistoryBackfillJob.hpp"
 #include "jobs/GapRecoveryJob.hpp"
+#include "jobs/MarketMoversRefreshJob.hpp"
 
 #include "database/Database.hpp"
 #include "database/DatabaseMigrator.hpp"
@@ -27,6 +28,10 @@
 #include "prices/TimeseriesClient.hpp"
 #include "prices/BackfillPolicy.hpp"
 #include "prices/HistoryRange.hpp"
+#include "market/MarketMovers.hpp"
+#include "market/MarketMoversService.hpp"
+
+#include "utils/Time.hpp"
 
 #include <crow.h>
 #include <crow/middlewares/cors.h>
@@ -70,6 +75,7 @@ int main(
     Database historyDatabase{databaseUrl};
     Database backfillDatabase{databaseUrl};
     Database coverageDatabase{databaseUrl};
+    Database marketDatabase{databaseUrl};
 
     // Repositories.
     ItemRepository itemRepository{
@@ -94,6 +100,15 @@ int main(
     // Dedicated to coverage checks.
     PriceRepository coverageRepository{
         coverageDatabase
+    };
+
+    //Market movers page
+    MarketMoversRepository marketMoversRepository{
+        marketDatabase
+    };
+
+    MarketMoversService marketMoversService{
+        marketMoversRepository
     };
 
 
@@ -214,6 +229,12 @@ int main(
         historyCache
     };
 
+    //market movers page stats
+    MarketMoversRefreshJob marketMoversRefreshJob{
+        marketMoversService
+    };
+
+    startMarketMoversRefreshWorker(marketMoversRefreshJob);
     startMappingRefreshWorker(mappingJob);
     startGapRecoveryWorker(gapRecoveryJob);
     startPriceRefreshWorker(priceRefreshJob);
@@ -848,6 +869,159 @@ int main(
             "application/json",
             response.dump()
         };
+    });
+
+    CROW_ROUTE(app, "/api/market/movers")
+    ([&marketMoversService](
+        const crow::request& req
+    )
+    {
+        const char* rangeParam =
+            req.url_params.get("range");
+
+        if (!rangeParam)
+        {
+            return crow::response{
+                400,
+                "application/json",
+                R"({"error":"Missing range parameter"})"
+            };
+        }
+
+        const char* categoryParam =
+            req.url_params.get("category");
+
+        if (!categoryParam)
+        {
+            return crow::response{
+                400,
+                "application/json",
+                R"({"error":"Missing category parameter"})"
+            };
+        }
+
+        const auto range =
+            parseMarketMoverRange(
+                rangeParam
+            );
+
+        if (!range)
+        {
+            return crow::response{
+                400,
+                "application/json",
+                R"({"error":"Invalid range parameter"})"
+            };
+        }
+
+        const auto category =
+            parseMarketMoverCategory(
+                categoryParam
+            );
+
+        if (!category)
+        {
+            return crow::response{
+                400,
+                "application/json",
+                R"({"error":"Invalid category parameter"})"
+            };
+        }
+
+        const auto result =
+            marketMoversService.findMovers(
+                *range,
+                *category
+            );
+
+        nlohmann::json data =
+            nlohmann::json::array();
+
+        for (const auto& item : result.items)
+        {
+            data.push_back(
+                marketMoverToJson(item)
+            );
+        }
+
+        nlohmann::json response{
+            {"range", rangeParam},
+            {"category", categoryParam},
+            {"limit", 30},
+            {"generatedAt", result.generatedAt},
+            {"items", std::move(data)}
+        };
+
+        crow::response httpResponse{
+            200,
+            "application/json",
+            response.dump()
+        };
+
+        httpResponse.set_header(
+            "Cache-Control",
+            "public, max-age=" +
+                std::to_string(
+                    secondsUntilNextUtcMidnight()
+                )
+        );
+
+        return httpResponse;
+    });
+
+    CROW_ROUTE(app, "/api/market/movers/snapshot")
+    ([&marketMoversService]
+    {
+        const auto snapshot =
+            marketMoversService.findSnapshot();
+
+        auto firstOrNull =
+            [](
+                const std::optional<MarketMoverItem>& item
+            )
+            {
+                if (!item)
+                {
+                    return nlohmann::json(nullptr);
+                }
+
+                return marketMoverToJson(
+                    *item
+                );
+            };
+
+        nlohmann::json response{
+            {"range", "24h"},
+            {"generatedAt", snapshot.generatedAt},
+            {
+                "biggestRise",
+                firstOrNull(snapshot.biggestRise)
+            },
+            {
+                "biggestFall",
+                firstOrNull(snapshot.biggestFall)
+            },
+            {
+                "highestVolume",
+                firstOrNull(snapshot.highestVolume)
+            }
+        };
+
+        crow::response httpResponse{
+            200,
+            "application/json",
+            response.dump()
+        };
+
+        httpResponse.set_header(
+            "Cache-Control",
+            "public, max-age=" +
+                std::to_string(
+                    secondsUntilNextUtcMidnight()
+                )
+        );
+
+        return httpResponse;
     });
     
     app

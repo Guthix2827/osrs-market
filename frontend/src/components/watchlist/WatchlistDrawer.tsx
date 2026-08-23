@@ -8,8 +8,12 @@ import {
     PointerSensor,
     useSensor,
     useSensors,
-    type DragEndEvent,
+    type DragEndEvent
 } from "@dnd-kit/core";
+
+import {
+    restrictToVerticalAxis,
+} from "@dnd-kit/modifiers";
 
 import {
     SortableContext,
@@ -24,6 +28,7 @@ import {
 import type {WatchSummary} from "../../types/watchlist.ts";
 import {API_BASE_URL} from "../../config/api.ts";
 import {useWatchlist} from "./WatchlistContext.tsx";
+import {useEffect, useState} from "react";
 
 export interface WatchedItem {
     id: number;
@@ -107,6 +112,30 @@ function formatPriceChange(
     return `${prefix}${change.toFixed(1)}%`;
 }
 
+function useDragHandleMode() {
+    const [enabled, setEnabled] =
+        useState(false);
+
+    useEffect(() => {
+        const query =
+            window.matchMedia("(pointer: coarse), (hover: none)");
+
+        const update = () => {
+            setEnabled(query.matches);
+        };
+
+        update();
+
+        query.addEventListener("change", update);
+
+        return () => {
+            query.removeEventListener("change", update);
+        };
+    }, []);
+
+    return enabled;
+}
+
 function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemProps) {
     const {
         attributes,
@@ -115,6 +144,7 @@ function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemP
         transform,
         transition,
         isDragging,
+        setActivatorNodeRef
     } = useSortable({
         id: item.id,
     });
@@ -155,6 +185,9 @@ function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemP
         setItemChangeRange,
     } = useWatchlist();
 
+    const useHandle =
+        useDragHandleMode();
+
     return (
         <div
             ref={setNodeRef}
@@ -167,6 +200,20 @@ function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemP
             {...attributes}
             {...listeners}
         >
+
+            {useHandle && (
+                <button
+                    ref={setActivatorNodeRef}
+                    type="button"
+                    className="watchlist-drag-handle"
+                    aria-label={`Drag ${item.name}`}
+                    {...attributes}
+                    {...listeners}
+                >
+                    <span aria-hidden="true">⋮⋮</span>
+                </button>
+            )}
+
             <div className="watchlist-item-icon">
                 <img
                     src={`${API_BASE_URL}${item.icon}`}
@@ -279,7 +326,7 @@ export function WatchlistDrawer({open, items, onClose, onRemove, onReorder}: Wat
             PointerSensor,
             {
                 activationConstraint: {
-                    distance: 5,
+                    distance: 8,
                 },
             },
         ),
@@ -363,30 +410,6 @@ export function WatchlistDrawer({open, items, onClose, onRemove, onReorder}: Wat
                 </div>
 
                 <div className="watchlist-items">
-                    <div className="watchlist-change-hint">
-                        <div className="watchlist-change-hint-icon">
-                            i
-                        </div>
-
-                        <div className="watchlist-change-hint-content">
-                            <p>
-                                Price shown is the current market <strong>midpoint</strong>
-                                {" "}between instant buy and sell.
-                            </p>
-
-                            <p>
-                                The <strong>selected range</strong> compares the current
-                                midpoint with the midpoint at the start of that range.
-                                <br />
-                                <strong>Since added</strong> compares the current midpoint
-                                with the midpoint when the item was added to your watchlist.
-                            </p>
-
-                            <p>
-                                Percentages <strong>exclude GE tax</strong>.
-                            </p>
-                        </div>
-                    </div>
 
                     {items.length === 0 ? (
                         <div className="watchlist-empty">
@@ -395,6 +418,7 @@ export function WatchlistDrawer({open, items, onClose, onRemove, onReorder}: Wat
                     ) : (
                         <DndContext
                             sensors={sensors}
+                            modifiers={[restrictToVerticalAxis]}
                             collisionDetection={
                                 closestCenter
                             }
@@ -424,6 +448,31 @@ export function WatchlistDrawer({open, items, onClose, onRemove, onReorder}: Wat
                             </SortableContext>
                         </DndContext>
                     )}
+                </div>
+
+                <div className="watchlist-change-hint">
+                    <div className="watchlist-change-hint-icon">
+                        i
+                    </div>
+
+                    <div className="watchlist-change-hint-content">
+                        <p>
+                            Price shown is the current market <strong>midpoint</strong>
+                            {" "}between instant buy and sell.
+                        </p>
+
+                        <p>
+                            The <strong>selected range</strong> compares the current
+                            midpoint with the midpoint at the start of that range.
+                            <br />
+                            <strong>Since added</strong> compares the current midpoint
+                            with the midpoint when the item was added to your watchlist.
+                        </p>
+
+                        <p>
+                            Percentages <strong>exclude GE tax</strong>.
+                        </p>
+                    </div>
                 </div>
             </aside>
         </>

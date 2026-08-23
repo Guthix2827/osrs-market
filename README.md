@@ -53,7 +53,7 @@ Implemented:
 - Per-item watchlist summary refresh scheduling with localStorage persistence
 - Reliable historical backfill: Historical price points now use the timestamps supplied by the Wiki API. Missing ranges are queued for background backfill when requested, while successful backfills are tracked separately from actual trade coverage. This correctly supports new, sparse, and rarely traded items without repeatedly downloading the same history.
 - Efficient chart refresh: Live prices continue to update every minute, while the 24-hour chart refreshes shortly after each five-minute market interval. Longer historical ranges are loaded only when selected, reducing unnecessary API and database requests.
-
+- Market Movers page with top gainers, losers, volume/value rankings, daily snapshot cards, responsive mobile rows, and daily cached backend API responses.
 
 Planned / next steps:
 
@@ -320,6 +320,36 @@ The table therefore has an index based on:
 ```
 
 Historical storage may later be partitioned or aggregated as the dataset grows.
+
+---
+
+### Market Movers
+
+Added a new Market Movers page for discovering high-activity and high-change Grand Exchange items.
+
+Current features:
+
+- Top 30 market movers table
+- Range filters: 24H, 7D, 30D, 90D
+- Categories:
+  - Top Gainers
+  - Top Losers
+  - Most Traded
+  - Highest Value
+- Daily snapshot cards:
+  - Biggest rise
+  - Biggest fall
+  - Highest volume
+- Responsive mobile layout with expandable item rows
+- Browser-side daily cache to reduce repeat API calls
+
+Backend support:
+
+- `GET /api/market/movers?range=24h&category=gainers`
+- `GET /api/market/movers/snapshot`
+- Market mover results are precomputed and cached in memory
+- Cache refresh runs on backend startup and once daily after UTC midnight
+- Responses include daily `Cache-Control` headers for proxy/browser caching
 
 ---
 
