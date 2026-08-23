@@ -197,8 +197,8 @@ function SortableWatchlistItem({item, onClose, onRemove}: SortableWatchlistItemP
                     ? "is-dragging"
                     : ""
             }`}
-            {...attributes}
-            {...listeners}
+            {...(!useHandle ? attributes : {})}
+            {...(!useHandle ? listeners : {})}
         >
 
             {useHandle && (
