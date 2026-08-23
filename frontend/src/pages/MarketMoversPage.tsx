@@ -75,14 +75,20 @@ export function MarketMoversPage() {
         let cancelled = false;
 
         const loadMarketMovers = async () => {
-            const result =
-                await fetchWithDailyCache<MarketMoversResponse>({
-                    key: `market-movers:${activeRange}:${activeCategory}`,
-                    url: `${API_BASE_URL}/api/market/movers?range=${activeRange}&category=${activeCategory}`,
-                });
+            try {
+                const result =
+                    await fetchWithDailyCache<MarketMoversResponse>({
+                        key: `market-movers:${activeRange}:${activeCategory}`,
+                        url: `${API_BASE_URL}/api/market/movers?range=${activeRange}&category=${activeCategory}`,
+                    });
 
-            if (!cancelled) {
-                setRows(result.items);
+                if (!cancelled) {
+                    setRows(result.items);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.error('Failed to load market movers', error);
+                }
             }
         };
 
@@ -112,10 +118,7 @@ export function MarketMoversPage() {
                 }
             } catch (error) {
                 if (!cancelled) {
-                    console.error(
-                        'Failed to load market movers snapshot',
-                        error,
-                    );
+                    console.error('Failed to load market movers snapshot', error);
                 }
             }
         };
