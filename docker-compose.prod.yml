@@ -47,21 +47,23 @@ services:
     expose:
       - "9011"
     environment:
-      DATABASE_URL: jdbc:postgresql://postgres:5432/${FUSIONAUTH_DATABASE}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${FUSIONAUTH_DATABASE_NAME}
       DATABASE_ROOT_USERNAME: ${POSTGRES_USER}
       DATABASE_ROOT_PASSWORD: ${POSTGRES_PASSWORD}
       DATABASE_USERNAME: ${FUSIONAUTH_DATABASE_USER}
       DATABASE_PASSWORD: ${FUSIONAUTH_DATABASE_PASSWORD}
-      FUSIONAUTH_APP_URL: http://fusionauth:9011
-      SEARCH_TYPE: database
+      FUSIONAUTH_APP_KICKSTART_FILE: /usr/local/fusionauth/kickstart/kickstart.prod.json
       FUSIONAUTH_APP_MEMORY: ${FUSIONAUTH_APP_MEMORY:-512M}
       FUSIONAUTH_APP_RUNTIME_MODE: production
       FUSIONAUTH_APP_SILENT_MODE: "true"
+      FUSIONAUTH_APP_URL: http://fusionauth:9011
+      SEARCH_TYPE: database
+    volumes:
+      - fusionauth-config:/usr/local/fusionauth/config
+      - ./.secrets/kickstart.prod.json:/usr/local/fusionauth/kickstart/kickstart.prod.json:ro
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - fusionauth-config:/usr/local/fusionauth/config
     healthcheck:
       test:
         [
