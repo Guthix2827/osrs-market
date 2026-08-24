@@ -31,7 +31,7 @@
       "body": {
         "key": {
           "algorithm": "RS256",
-          "name": "OSRS Market development signing key",
+          "name": "OSRS Market signing key",
           "length": 2048
         }
       }
@@ -93,7 +93,7 @@
           "password": "#{adminPassword}"
         },
         "registration": {
-          "applicationId": "#{applicationId}",
+          "applicationId": "#{FUSIONAUTH_APPLICATION_ID}",
           "roles": [
             "admin"
           ]
