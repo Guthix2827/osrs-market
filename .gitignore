@@ -3,6 +3,8 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 
+auth-service/dist/
+
 # Environment
 .env
 .env.*

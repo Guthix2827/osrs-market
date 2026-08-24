@@ -51,8 +51,7 @@ export const config = {
     fusionAuthApplicationId:
         requireValue("FUSIONAUTH_APPLICATION_ID"),
 
-    fusionAuthClientSecret:
-        process.env.FUSIONAUTH_CLIENT_SECRET || null,
+    fusionAuthClientSecret: requireValue("FUSIONAUTH_CLIENT_SECRET"),
 
     oauthRedirectUri:
         requireValue("OAUTH_REDIRECT_URI"),
