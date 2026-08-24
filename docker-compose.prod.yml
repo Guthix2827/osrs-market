@@ -42,6 +42,78 @@ services:
       - osrs-market-data:/app/data
     restart: unless-stopped
 
+  fusionauth:
+    image: fusionauth/fusionauth-app:${FUSIONAUTH_VERSION:-1.69.0}
+    expose:
+      - "9011"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${FUSIONAUTH_DATABASE}
+      DATABASE_ROOT_USERNAME: ${POSTGRES_USER}
+      DATABASE_ROOT_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_USERNAME: ${FUSIONAUTH_DATABASE_USER}
+      DATABASE_PASSWORD: ${FUSIONAUTH_DATABASE_PASSWORD}
+      FUSIONAUTH_APP_URL: http://fusionauth:9011
+      SEARCH_TYPE: database
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - fusionauth-config:/usr/local/fusionauth/config
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://127.0.0.1:9011/api/status >/dev/null || exit 1"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    restart: unless-stopped
+
+  auth:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    environment:
+      PORT: 3000
+
+      DATABASE_URL: ${DATABASE_URL}
+
+      FUSIONAUTH_INTERNAL_URL: http://fusionauth:9011
+      FUSIONAUTH_PUBLIC_URL: ${FUSIONAUTH_PUBLIC_URL}
+
+      FUSIONAUTH_APPLICATION_ID: ${FUSIONAUTH_APPLICATION_ID}
+      FUSIONAUTH_CLIENT_SECRET: ${FUSIONAUTH_CLIENT_SECRET}
+
+      OAUTH_REDIRECT_URI: ${FUSIONAUTH_REDIRECT_URI}
+      FRONTEND_URL: ${FRONTEND_URL}
+
+      TOKEN_ENCRYPTION_KEY: ${AUTH_TOKEN_ENCRYPTION_KEY}
+
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_NAME: osrs_market_session
+      SESSION_TTL_SECONDS: 2592000
+      OAUTH_ATTEMPT_TTL_SECONDS: 600
+    depends_on:
+      fusionauth:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://127.0.0.1:3000/auth/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -62,5 +134,7 @@ services:
     restart: unless-stopped
 
 volumes:
+  fusionauth-config:
   osrs-market-data:
+  auth-node-modules:
   postgres-data:

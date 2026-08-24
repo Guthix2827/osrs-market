@@ -19,6 +19,10 @@ import {
     useWatchlist,
 } from "./watchlist/WatchlistContext.tsx";
 
+import {
+    useAuth,
+} from "./auth/AuthContext.tsx";
+
 import "../styles/Header.css";
 
 
@@ -35,6 +39,12 @@ export function Header() {
         reorderItems,
     } = useWatchlist();
 
+    const {
+        loading: authLoading,
+        user,
+        login,
+        logout,
+    } = useAuth();
 
     const closeMobileMenu = () => {
         setMobileOpen(false);
@@ -145,6 +155,41 @@ export function Header() {
                         )}
                     </button>
 
+                    {!authLoading && (
+                        user ? (
+                            <button
+                                type="button"
+                                className="auth-button auth-button-user"
+                                title={
+                                    user.email ?? undefined
+                                }
+                                onClick={() => {
+                                    void logout();
+                                }}
+                            >
+                                <span>
+                                    {
+                                        user.displayName ||
+                                        user.email ||
+                                        "Account"
+                                    }
+                                </span>
+
+                                <small>
+                                    Log out
+                                </small>
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                className="auth-button"
+                                onClick={login}
+                            >
+                                Log in
+                            </button>
+                        )
+                    )}
+
                     <button
                         type="button"
                         className="mobile-menu-button"
@@ -193,6 +238,33 @@ export function Header() {
                         >
                             About
                         </Link>
+
+                        {!authLoading && (
+                            <button
+                                type="button"
+                                className="nav-link"
+                                onClick={() => {
+                                    closeMobileMenu();
+
+                                    if (user) {
+                                        void logout();
+                                        return;
+                                    }
+
+                                    login();
+                                }}
+                            >
+                                {
+                                    user
+                                        ? `Log out (${
+                                            user.displayName ||
+                                            user.email ||
+                                            "Account"
+                                        })`
+                                        : "Log in"
+                                }
+                            </button>
+                        )}
                     </nav>
                 )}
             </header>
