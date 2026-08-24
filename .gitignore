@@ -26,3 +26,5 @@ build/
 
 # Generated local authentication configuration
 .secrets/
+
+__pycache__/

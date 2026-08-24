@@ -5,16 +5,26 @@
     "clientSecret": "__FUSIONAUTH_CLIENT_SECRET__",
     "signingKeyId": "#{UUID()}",
     "defaultTenantId": "__FUSIONAUTH_TENANT_ID__",
-    "adminEmail": "admin@osrs-market.local",
+    "adminEmail": "__FUSIONAUTH_ADMIN_EMAIL__",
     "adminPassword": "__FUSIONAUTH_ADMIN_PASSWORD__"
   },
   "apiKeys": [
     {
       "key": "#{apiKey}",
-      "description": "OSRS Market local development only"
+      "description": "OSRS Market bootstrap API key"
     }
   ],
   "requests": [
+    {
+      "method": "POST",
+      "url": "/api/tenant/#{defaultTenantId}",
+      "body": {
+        "tenant": {
+          "issuer": "__FUSIONAUTH_PUBLIC_URL__",
+          "name": "OSRS Market"
+        }
+      }
+    },
     {
       "method": "POST",
       "url": "/api/key/generate/#{signingKeyId}",

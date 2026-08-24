@@ -2,6 +2,7 @@
 
 import json
 import sys
+
 from pathlib import Path
 
 
@@ -16,8 +17,8 @@ def read_environment(
         .splitlines()
     ):
         if (
-            not line or
-            line.startswith("#")
+            not line
+            or line.startswith("#")
         ):
             continue
 
@@ -32,7 +33,10 @@ def read_environment(
             1,
         )
 
-        if not key or not value:
+        if (
+            not key
+            or not value
+        ):
             raise RuntimeError(
                 f"Invalid environment value "
                 f"for {key!r}"
@@ -59,47 +63,116 @@ def main() -> None:
             "<output>"
         )
 
-    auth_environment_path = Path(sys.argv[1])
-    bootstrap_environment_path = Path(sys.argv[2])
-    template_path = Path(sys.argv[3])
-    output_path = Path(sys.argv[4])
-
-    environment = {
-        **read_environment(auth_environment_path),
-        **read_environment(bootstrap_environment_path),
-    }
-
-    client_secret = environment.get(
-        "FUSIONAUTH_CLIENT_SECRET",
+    auth_environment_path = Path(
+        sys.argv[1]
     )
 
-    if not client_secret:
+    bootstrap_environment_path = Path(
+        sys.argv[2]
+    )
+
+    template_path = Path(
+        sys.argv[3]
+    )
+
+    output_path = Path(
+        sys.argv[4]
+    )
+
+    environment = {
+        **read_environment(
+            auth_environment_path
+        ),
+        **read_environment(
+            bootstrap_environment_path
+        ),
+    }
+
+    required_values = {
+        "FUSIONAUTH_APPLICATION_ID",
+        "FUSIONAUTH_CLIENT_SECRET",
+        "FUSIONAUTH_API_KEY",
+        "FUSIONAUTH_TENANT_ID",
+        "FUSIONAUTH_ADMIN_PASSWORD",
+        "FUSIONAUTH_ADMIN_EMAIL",
+        "FUSIONAUTH_PUBLIC_URL",
+        "FUSIONAUTH_REDIRECT_URI",
+        "FUSIONAUTH_LOGOUT_URL",
+        "FRONTEND_URL",
+    }
+
+    missing_values = sorted(
+        key
+        for key in required_values
+        if not environment.get(key)
+    )
+
+    if missing_values:
         raise RuntimeError(
-            "FUSIONAUTH_CLIENT_SECRET "
-            "is missing"
+            "Missing Kickstart environment values: "
+            + ", ".join(
+                missing_values
+            )
         )
 
     placeholders = {
         "__FUSIONAUTH_APPLICATION_ID__":
-            environment["FUSIONAUTH_APPLICATION_ID"],
+            environment[
+                "FUSIONAUTH_APPLICATION_ID"
+            ],
 
         "__FUSIONAUTH_CLIENT_SECRET__":
-            environment["FUSIONAUTH_CLIENT_SECRET"],
+            environment[
+                "FUSIONAUTH_CLIENT_SECRET"
+            ],
 
         "__FUSIONAUTH_API_KEY__":
-            environment["FUSIONAUTH_API_KEY"],
+            environment[
+                "FUSIONAUTH_API_KEY"
+            ],
 
         "__FUSIONAUTH_TENANT_ID__":
-            environment["FUSIONAUTH_TENANT_ID"],
+            environment[
+                "FUSIONAUTH_TENANT_ID"
+            ],
 
         "__FUSIONAUTH_ADMIN_PASSWORD__":
-            environment["FUSIONAUTH_ADMIN_PASSWORD"],
+            environment[
+                "FUSIONAUTH_ADMIN_PASSWORD"
+            ],
+
+        "__FUSIONAUTH_ADMIN_EMAIL__":
+            environment[
+                "FUSIONAUTH_ADMIN_EMAIL"
+            ],
+
+        "__FUSIONAUTH_PUBLIC_URL__":
+            environment[
+                "FUSIONAUTH_PUBLIC_URL"
+            ],
+
+        "__FRONTEND_URL__":
+            environment[
+                "FRONTEND_URL"
+            ],
+
+        "__FUSIONAUTH_REDIRECT_URI__":
+            environment[
+                "FUSIONAUTH_REDIRECT_URI"
+            ],
+
+        "__FUSIONAUTH_LOGOUT_URL__":
+            environment[
+                "FUSIONAUTH_LOGOUT_URL"
+            ],
     }
 
     rendered = template_path.read_text()
 
     for placeholder, value in placeholders.items():
-        escaped_value = json.dumps(value)[1:-1]
+        escaped_value = json.dumps(
+            value
+        )[1:-1]
 
         rendered = rendered.replace(
             placeholder,
@@ -115,18 +188,25 @@ def main() -> None:
     if remaining_placeholders:
         raise RuntimeError(
             "Kickstart placeholders remain: "
-            + ", ".join(remaining_placeholders)
+            + ", ".join(
+                remaining_placeholders
+            )
         )
 
-    json.loads(rendered)
+    json.loads(
+        rendered
+    )
 
-    output_path.write_text(rendered)
+    output_path.write_text(
+        rendered
+    )
 
 
 if __name__ == "__main__":
     try:
         main()
     except (
+        KeyError,
         OSError,
         RuntimeError,
         json.JSONDecodeError,
