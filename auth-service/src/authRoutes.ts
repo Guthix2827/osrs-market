@@ -42,18 +42,25 @@ const cookieOptions = {
     config.sessionTtlSeconds,
 };
 
-const normalizeReturnTo = (
-    value: unknown,
-): string => {
-    if (
-        typeof value !== "string" ||
-        !value.startsWith("/") ||
-        value.startsWith("//")
-    ) {
+const normalizeReturnTo = (value: unknown): string => {
+    if (typeof value !== "string") {
         return "/";
     }
 
-    return value;
+    try {
+        const resolvedUrl = new URL(
+            value,
+            config.frontendUrl,
+        );
+
+        if (resolvedUrl.origin !== config.frontendUrl.origin) {
+            return "/";
+        }
+
+        return `${resolvedUrl.pathname}${resolvedUrl.search}${resolvedUrl.hash}`;
+    } catch {
+        return "/";
+    }
 };
 
 const requireSameOrigin = (
