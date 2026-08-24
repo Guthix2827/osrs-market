@@ -45,10 +45,10 @@
           "name": "OSRS Market",
           "oauthConfiguration": {
             "authorizedOriginURLs": [
-              "http://localhost:5173"
+              "__FRONTEND_URL__"
             ],
             "authorizedRedirectURLs": [
-              "http://localhost:5173/auth/callback"
+              "__FUSIONAUTH_REDIRECT_URI__"
             ],
             "authorizedURLValidationPolicy": "ExactMatch",
             "clientAuthenticationPolicy": "Required",
@@ -58,7 +58,7 @@
               "refresh_token"
             ],
             "generateRefreshTokens": true,
-            "logoutURL": "http://localhost:5173/",
+            "logoutURL": "__FUSIONAUTH_LOGOUT_URL__",
             "proofKeyForCodeExchangePolicy": "Required",
             "requireRegistration": true,
             "scopeHandlingPolicy": "Strict",
