@@ -1,0 +1,94 @@
+{
+  "variables": {
+    "apiKey": "__FUSIONAUTH_API_KEY__",
+    "applicationId": "__FUSIONAUTH_APPLICATION_ID__",
+    "clientSecret": "__FUSIONAUTH_CLIENT_SECRET__",
+    "signingKeyId": "#{UUID()}",
+    "defaultTenantId": "__FUSIONAUTH_TENANT_ID__",
+    "adminEmail": "admin@osrs-market.local",
+    "adminPassword": "__FUSIONAUTH_ADMIN_PASSWORD__"
+  },
+  "apiKeys": [
+    {
+      "key": "#{apiKey}",
+      "description": "OSRS Market local development only"
+    }
+  ],
+  "requests": [
+    {
+      "method": "POST",
+      "url": "/api/key/generate/#{signingKeyId}",
+      "body": {
+        "key": {
+          "algorithm": "RS256",
+          "name": "OSRS Market development signing key",
+          "length": 2048
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/application/#{applicationId}",
+      "tenantId": "#{defaultTenantId}",
+      "body": {
+        "application": {
+          "name": "OSRS Market",
+          "oauthConfiguration": {
+            "authorizedOriginURLs": [
+              "http://localhost:5173"
+            ],
+            "authorizedRedirectURLs": [
+              "http://localhost:5173/auth/callback"
+            ],
+            "authorizedURLValidationPolicy": "ExactMatch",
+            "clientAuthenticationPolicy": "Required",
+            "clientSecret": "#{clientSecret}",
+            "enabledGrants": [
+              "authorization_code",
+              "refresh_token"
+            ],
+            "generateRefreshTokens": true,
+            "logoutURL": "http://localhost:5173/",
+            "proofKeyForCodeExchangePolicy": "Required",
+            "requireRegistration": true,
+            "scopeHandlingPolicy": "Strict",
+            "unknownScopePolicy": "Reject"
+          },
+          "jwtConfiguration": {
+            "enabled": true,
+            "accessTokenKeyId": "#{signingKeyId}",
+            "idTokenKeyId": "#{signingKeyId}"
+          },
+          "registrationConfiguration": {
+            "enabled": true,
+            "loginIdType": "email"
+          },
+          "roles": [
+            {
+              "description": "OSRS Market administrator",
+              "isDefault": false,
+              "isSuperRole": true,
+              "name": "admin"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "/api/user/registration",
+      "body": {
+        "user": {
+          "email": "#{adminEmail}",
+          "password": "#{adminPassword}"
+        },
+        "registration": {
+          "applicationId": "#{applicationId}",
+          "roles": [
+            "admin"
+          ]
+        }
+      }
+    }
+  ]
+}

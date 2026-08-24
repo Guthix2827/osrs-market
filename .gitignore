@@ -21,3 +21,6 @@ build/
 
 # Docker/runtime
 *.log
+
+# Generated local authentication configuration
+.secrets/

@@ -258,6 +258,78 @@
 }
 
 /**
+ * Auth
+ */
+.auth-button {
+    min-height: 36px;
+    flex-shrink: 0;
+
+    padding: 0 14px;
+
+    border: 1px solid #6f6756;
+    border-radius: 6px;
+
+    background:
+            rgba(214, 163, 74, 0.08);
+
+    color: #e6c477;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+            border-color 120ms ease,
+            background 120ms ease,
+            color 120ms ease;
+}
+
+.auth-button:hover {
+    border-color: #d6a34a;
+
+    background:
+            rgba(214, 163, 74, 0.14);
+
+    color: #f1c15f;
+}
+
+.auth-button:focus-visible {
+    outline: 1px solid #d6a34a;
+    outline-offset: 2px;
+}
+
+.auth-button-user {
+    max-width: 190px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+
+    line-height: 1.1;
+}
+
+.auth-button-user span {
+    width: 100%;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.auth-button-user small {
+    margin-top: 2px;
+
+    color: var(--muted);
+
+    font-size: 10px;
+    font-weight: 400;
+}
+
+/**
  * Search dropdown
  */
 
@@ -468,6 +540,9 @@
     .mobile-watchlist-button {
         display: flex;
         margin-left: auto;
+    }
+    .auth-button {
+        display: none;
     }
 }
 

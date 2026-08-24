@@ -28,6 +28,79 @@ services:
     environment:
       DATABASE_URL: postgres://osrs_market:osrs_market@postgres:5432/osrs_market
 
+  fusionauth:
+    image: fusionauth/fusionauth-app:1.69.0
+    ports:
+      - "127.0.0.1:9011:9011"
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/fusionauth
+      DATABASE_ROOT_USERNAME: osrs_market
+      DATABASE_ROOT_PASSWORD: osrs_market
+      DATABASE_USERNAME: fusionauth
+      DATABASE_PASSWORD: fusionauth
+      FUSIONAUTH_APP_KICKSTART_FILE: /usr/local/fusionauth/kickstart/kickstart.dev.json
+      FUSIONAUTH_APP_MEMORY: 512M
+      FUSIONAUTH_APP_RUNTIME_MODE: development
+      FUSIONAUTH_APP_SILENT_MODE: "true"
+      FUSIONAUTH_APP_URL: http://fusionauth:9011
+      SEARCH_TYPE: database
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - fusionauth-config:/usr/local/fusionauth/config
+      - ./auth/kickstart:/usr/local/fusionauth/kickstart:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9011/api/status >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    restart: unless-stopped
+
+  auth:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile.dev
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./auth-service:/app
+      - auth-node-modules:/app/node_modules
+    env_file:
+      - ./.secrets/auth-service.env
+    environment:
+      PORT: 3000
+
+      DATABASE_URL: postgres://osrs_market:osrs_market@postgres:5432/osrs_market
+
+      FUSIONAUTH_INTERNAL_URL: http://fusionauth:9011
+      FUSIONAUTH_PUBLIC_URL: http://localhost:9011
+
+      OAUTH_REDIRECT_URI: http://localhost:5173/auth/callback
+      FRONTEND_URL: http://localhost:5173
+
+      SESSION_COOKIE_SECURE: "false"
+      SESSION_COOKIE_NAME: osrs_market_session
+      SESSION_TTL_SECONDS: 2592000
+      OAUTH_ATTEMPT_TTL_SECONDS: 600
+    depends_on:
+      fusionauth:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q --spider http://127.0.0.1:3000/auth/health || exit 1"
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   postgres:
     image: postgres:18-alpine
     environment:
@@ -45,5 +118,7 @@ services:
 
 volumes:
   backend-build:
+  fusionauth-config:
   osrs-market-data:
+  auth-node-modules:
   postgres-data:
