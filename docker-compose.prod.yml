@@ -44,8 +44,11 @@ services:
 
   fusionauth:
     image: fusionauth/fusionauth-app:${FUSIONAUTH_VERSION:-1.69.0}
-    expose:
-      - "127.0.0.1:${FUSIONAUTH_PORT:-9011}:9011"
+    ports:
+      - target: 9011
+        published: "${FUSIONAUTH_PORT:-9011}"
+        host_ip: "127.0.0.1"
+        protocol: tcp
     environment:
       DATABASE_URL: jdbc:postgresql://postgres:5432/${FUSIONAUTH_DATABASE_NAME}
       DATABASE_ROOT_USERNAME: ${POSTGRES_USER}
