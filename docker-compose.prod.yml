@@ -86,6 +86,8 @@ services:
       dockerfile: Dockerfile
     expose:
       - "3000"
+    env_file:
+      - .secrets/production.env
     environment:
       TRUST_PROXY: "true"
       PORT: 3000
