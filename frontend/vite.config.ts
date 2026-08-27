@@ -10,6 +10,8 @@ export default defineConfig({
   ],
   server: {
     host: "localhost",
+    port: 5173,
+    strictPort: true,
     proxy: {
       "^/auth/(login|callback|session|logout|health)(?:\\?|$)": {
         target:
