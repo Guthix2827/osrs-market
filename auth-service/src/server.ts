@@ -15,10 +15,12 @@ import {
     removeExpiredAuthData,
 } from "./database.js";
 
+const trustProxyCondition = process.env.TRUST_PROXY === "true";
+
 const app =
     Fastify({
         logger: true,
-        trustProxy: true,
+        trustProxy: trustProxyCondition
     });
 
 await app.register(cookie);

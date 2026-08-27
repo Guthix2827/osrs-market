@@ -45,6 +45,9 @@
 #include <cstdlib>
 #include <string>
 #include <atomic>
+#include <cstdlib>
+#include <stdexcept>
+#include <string_view>
 
 
 int main(
@@ -247,9 +250,22 @@ int main(
     auto& cors =
         app.get_middleware<crow::CORSHandler>();
 
+    const char* frontendOrigin =
+        std::getenv("FRONTEND_ORIGIN");
+
+    if (
+        frontendOrigin == nullptr ||
+        std::string_view{frontendOrigin}.empty()
+    )
+    {
+        throw std::runtime_error{
+            "FRONTEND_ORIGIN is not configured"
+        };
+    }
+
     cors
         .global()
-        .origin("*");
+        .origin(frontendOrigin);
 
     //silent log
     app.loglevel(crow::LogLevel::Warning);

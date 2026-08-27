@@ -15,62 +15,131 @@ The goal is to build a fast, self-contained market data service that does not re
 
 This project is currently under active development. The core backend data pipeline and the first complete item-market frontend are now working end to end.
 
-Implemented:
+## Project Status
 
-- C++20 backend with Crow
+OSRS Market is under active development. The core market-data pipeline, historical price system, authentication layer, market discovery features, and responsive frontend are working end to end.
+
+### Implemented
+
+#### Backend & Data Pipeline
+
+- C++20 backend built with Crow
+- PostgreSQL persistence with incremental SQL migrations
 - RuneScape Wiki item mapping synchronization
 - Local item icon caching
-- PostgreSQL persistence and item metadata revision history
+- Item metadata revision history
 - In-memory metadata and latest-price stores
-- Bulk 5-minute market price collection
+- Bulk five-minute market price collection
 - Change-based price event persistence
-- Background price collection
+- Background price collection and mapping refresh workers
 - Historical timeseries API
-- Startup gap recovery after collector downtime
 - Coverage-aware history caching that avoids caching incomplete ranges
 - 24-hour, 7-day, 30-day, and 1-year history ranges
-- React + TypeScript item page integrated with the C++ API
+- Background historical backfill for missing ranges
+- Historical backfill state tracked independently from actual trade coverage
+- Wiki-provided timestamps preserved during historical backfill
+- Support for sparse, new, and rarely traded items without repeatedly downloading completed historical ranges
+- Watch-summary API backed by the shared `PriceHistoryCache`
+- Serialized database access to prevent overlapping transactions on shared libpqxx connections
+
+#### Frontend
+
+- React + TypeScript frontend integrated with the C++ API
 - Item search by name or ID
-- Price and volume charts
-- Bought vs sold 24-hour volume visualization
+- Interactive price and volume charts
+- Synchronized chart zoom across price, volume, and trade-distribution views
+- Bought vs sold volume visualization
 - Market statistics including margin, ROI, limit profit, price change, spread, volume, and liquidity
 - Responsive desktop, tablet, and mobile layouts
 - Sticky responsive navigation and search
 - About page and site footer
-- Client-side history caching by range for fast chart switching
-- Periodic frontend history refresh
+- Latest instant buy/sell prices refreshed independently from historical chart data
+
+#### History Loading & Live Updates
+
+- Per-range client-side history state for fast chart switching
+- Previously loaded ranges are reused while their data is still fresh
+- 24-hour history freshness follows five-minute market update boundaries
+- 7-day history uses hourly freshness boundaries
+- 30-day and 1-year history use daily freshness boundaries
+- 24-hour charts automatically refresh shortly after each five-minute market interval
+- Latest instant buy/sell prices refresh every minute
+- Changing historical ranges does not unnecessarily reload latest-price data
+- Navigating to another item resets the chart to 24H and loads fresh history for that item
+
+#### Watchlist
+
+- Persistent client-side watchlist
+- Slide-out watchlist drawer
+- Drag-and-drop item ordering
+- Per-item comparison range selection
+- Midpoint price tracking with 30m, 1h, 6h, 12h, and 24h comparisons
+- Per-item price tracking from the moment an item is added
+- Watched-since marker on the price history chart
+- Per-item watch-summary refresh scheduling
+- localStorage persistence
+
+#### Market Discovery
+
+- Market Movers page
+- Top gainers and losers
+- Highest-volume and highest-value rankings
+- Daily market snapshot cards
+- Responsive mobile market rows
+- Daily cached Market Movers backend responses
+
+#### Authentication
+
+- FusionAuth-based user authentication
+- Dedicated authentication service
+- Session-based frontend authentication flow
+- Login, callback, session, and logout endpoints
+- Development and production authentication configuration
+- Local secret management without committing credentials to the repository
+- C++ backend remains independent from authentication UI concerns for public market endpoints
+
+#### Security & Infrastructure
+
+- Explicit CORS origin configuration through `FRONTEND_ORIGIN`
+- Restricted production frontend origins instead of wildcard CORS
 - Docker development environment
-- Production Docker Compose stack with Nginx frontend proxy and service health checks
+- Production Docker Compose stack
+- Nginx frontend and API reverse proxy
+- Service health checks
 - PostgreSQL first-run schema initialization from `backend/sql`
 - Backend SQL migration runner for incremental schema updates
-- Non-blocking backend startup workers for mapping refresh, gap recovery, icons, and price collection
-- Interactive chart zoom with synchronized price, volume, and trade distribution data
-- Persistent client-side watchlist with slide-out drawer, drag-and-drop ordering, and per-item range selection
-- Watchlist midpoint price tracking with 30m, 1h, 6h, 12h, and 24h comparisons
-- Per-item price tracking from the moment an item is added to the watchlist
-- Watched-since marker on the price history chart
-- Watch-summary API backed by the shared `PriceHistoryCache`
-- Per-item watchlist summary refresh scheduling with localStorage persistence
-- Reliable historical backfill: Historical price points now use the timestamps supplied by the Wiki API. Missing ranges are queued for background backfill when requested, while successful backfills are tracked separately from actual trade coverage. This correctly supports new, sparse, and rarely traded items without repeatedly downloading the same history.
-- Efficient chart refresh: Live prices continue to update every minute, while the 24-hour chart refreshes shortly after each five-minute market interval. Longer historical ranges are loaded only when selected, reducing unnecessary API and database requests.
-- Market Movers page with top gainers, losers, volume/value rankings, daily snapshot cards, responsive mobile rows, and daily cached backend API responses.
+- Non-blocking startup workers for mapping refresh, icons, price collection, gap recovery, and historical backfill
+- Standalone `backfill-all` mode for repairing historical market data
 
-Planned / next steps:
+### Known Limitations / In Progress
 
-- User accounts and secure authentication through FusionAuth
+- Startup gap detection currently uses the latest global market timestamp and can miss per-item gaps when newer records already exist. Full historical backfill can be used to repair these gaps while per-item recovery is improved.
+- Authentication is implemented, but user-owned features such as server-side watchlist persistence and premium account functionality are still being integrated.
+- Historical item lifecycle boundaries are not yet enforced, so additional validation is planned for new, removed, temporary, and reused item IDs.
+
+### Planned / Next Steps
+
+- Persist watchlists to authenticated user accounts
+- Admin functionality protected by authentication
+- Social sign-in providers such as Google and Apple
 - RuneLite integration for opt-in synchronization of completed Grand Exchange trades
 - Verified merchant portfolios with profit, ROI, risk, and performance tracking
 - Merchant hiscores ranked by verified flipping and merchandising performance
-- Virtual GP investments in public merchant portfolios, with no connection to real GP or money
+- Virtual GP investments in public merchant portfolios, with no connection to real GP or real money
 - Share functionality
-- Additional market statistics and aggregation
-- WebSocket live price updates for actively viewed items (instant buy / sell)
+- Additional market statistics, aggregation, and market-trend analysis
+- Price-analysis and experimental prediction features
+- WebSocket live price updates for actively viewed items
 - Further frontend and backend performance hardening
-- Historical price retention and rollup: retain high-resolution
-- 5-minute market data for the recent 24-hour window, aggregate older
-  data into hourly history, archive raw events for future analytics,
-  and remove expired high-resolution rows from the live database
-- Item lifecycle validation: Detect and store an item's official release date or earliest valid market date when it first appears in the mapping. Historical queries and backfills will use this boundary to reject impossible records from before the item's release. This will also protect against reused item IDs previously associated with temporary League, Deadman Mode, beta, or removed content.
+- Historical price retention and rollups:
+  - retain high-resolution five-minute data for the recent 24-hour window
+  - aggregate older data into hourly history
+  - archive raw events for future analytics
+  - remove expired high-resolution rows from the live database
+- Item lifecycle validation:
+  - detect and store an item's official release date or earliest valid market date
+  - reject historical records from before an item's valid market lifetime
+  - protect against reused item IDs previously associated with League, Deadman Mode, beta, temporary, or removed content
 
 ---
 
@@ -1071,8 +1140,24 @@ Replace `6739` with the desired item ID.
 
 Run the one-time full historical backfill for all tracked items:
 
+production
 ```bash
-docker compose run --rm backend \
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  run -d --rm \
+  --name osrs-backfill \
+  backend \
+  ./build/osrs-market-backend backfill-all
+```
+
+dev
+```bash
+docker compose \
+  -f docker-compose.dev.yml \
+  run -d --rm \
+  --name osrs-backfill \
+  backend \
   ./build/osrs-market-backend backfill-all
 ```
 

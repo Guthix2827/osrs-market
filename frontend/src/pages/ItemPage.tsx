@@ -25,6 +25,50 @@ function formatGp(value: number) {
     return new Intl.NumberFormat('en-US').format(value);
 }
 
+type HistoryCacheEntry = {
+    data: PricePoint[];
+    fetchedAt: number;
+};
+
+type HistoryCacheState = {
+    itemId: number | null;
+    byRange: Partial<
+        Record<
+            PriceHistoryRange,
+            HistoryCacheEntry
+        >
+    >;
+};
+
+const FIVE_MINUTES = 5 * 60_000;
+const ONE_HOUR = 60 * 60_000;
+const ONE_DAY = 24 * 60 * 60_000;
+const HISTORY_UPDATE_DELAY = 5_000;
+
+const HISTORY_REFRESH_INTERVAL: Record<PriceHistoryRange, number> = {
+    "24H": FIVE_MINUTES,
+    "7D": ONE_HOUR,
+    "30D": ONE_DAY,
+    "1Y": ONE_DAY,
+};
+
+function isHistoryCacheFresh(
+    entry: HistoryCacheEntry,
+    range: PriceHistoryRange,
+) {
+    const interval =
+        HISTORY_REFRESH_INTERVAL[range];
+
+    const nextUpdateBoundary =
+        Math.floor(
+            entry.fetchedAt / interval,
+        ) * interval + interval;
+
+    return Date.now() <
+        nextUpdateBoundary +
+        HISTORY_UPDATE_DELAY;
+}
+
 export default function ItemPage() {
 
     const {
@@ -60,21 +104,21 @@ export default function ItemPage() {
         };
     }, []);
 
-    const [historyByRange, setHistoryByRange] =
-        useState<
-            Partial<
-                Record<
-                    PriceHistoryRange,
-                    PricePoint[]
-                >
-            >
-        >({});
+    const [
+        historyCache,
+        setHistoryCache,
+    ] = useState<HistoryCacheState>({
+        itemId: null,
+        byRange: {},
+    });
 
     const history =
-        historyByRange[range] ?? [];
+        historyCache.itemId === itemId
+            ? historyCache.byRange[range]?.data ?? []
+            : [];
 
     useEffect(() => {
-        setHistoryByRange({});
+        setRange("24H");
         setZoomRange(null);
     }, [itemId]);
 
@@ -110,11 +154,29 @@ export default function ItemPage() {
 
     const watchedAt = watchedItem?.watchedAt ?? null;
 
-    const isRangeLoaded = historyByRange[range] !== undefined;
-
-    // Load price history.
+    /**
+     * The cache is intentionally scoped to the current item view:
+     * - changing item always loads that item's selected range from the server;
+     * - switching back to a range already loaded for the same item reuses it;
+     * - a cached range is refreshed after its next data-update boundary.
+     */
     useEffect(() => {
-        if (!Number.isInteger(itemId) || isRangeLoaded) {
+        if (!Number.isInteger(itemId)) {
+            return;
+        }
+
+        const cachedEntry =
+            historyCache.itemId === itemId
+                ? historyCache.byRange[range]
+                : undefined;
+
+        if (
+            cachedEntry !== undefined &&
+            isHistoryCacheFresh(
+                cachedEntry,
+                range,
+            )
+        ) {
             return;
         }
 
@@ -123,21 +185,19 @@ export default function ItemPage() {
 
         const loadHistory = async () => {
             try {
-                const [history, latestPrice] = await Promise.all([
-                    itemService.getPriceHistory(itemId, range, controller.signal),
-                    itemService.getLatestPrice(itemId, controller.signal)
-                ]);
+                const history = await itemService.getPriceHistory(itemId, range, controller.signal,);
 
                 if (controller.signal.aborted) {
                     return;
                 }
 
-                setHistoryByRange((current) => ({
-                    ...current,
-                    [range]: history,
+                setHistoryCache((current) => ({
+                    itemId,
+                    byRange: {
+                        ...(current.itemId === itemId ? current.byRange : {}),
+                        [range]: {data: history, fetchedAt: Date.now(),},
+                    },
                 }));
-                setLatestPrice(latestPrice);
-                setLatestFetchedAt(Date.now());
             } catch (error) {
                 if (
                     error instanceof DOMException &&
@@ -153,13 +213,7 @@ export default function ItemPage() {
             }
         };
 
-        loadHistory();
-
-        if (range !== '24H') {
-            return () => {
-                controller.abort();
-            };
-        }
+        void loadHistory();
 
         return () => {
             controller.abort();
@@ -167,20 +221,29 @@ export default function ItemPage() {
     }, [
         itemId,
         range,
-        isRangeLoaded,
     ]);
 
+    // Latest buy/sell is independent from the selected history range.
+    // Fetch immediately for a new item, then refresh every minute.
     useEffect(() => {
         if (!Number.isInteger(itemId)) {
             return;
         }
+
+        const controller =
+            new AbortController();
 
         const refreshLatestPrice = async () => {
             try {
                 const latestPrice =
                     await itemService.getLatestPrice(
                         itemId,
+                        controller.signal,
                     );
+
+                if (controller.signal.aborted) {
+                    return;
+                }
 
                 setLatestPrice(
                     latestPrice,
@@ -190,6 +253,13 @@ export default function ItemPage() {
                     Date.now(),
                 );
             } catch (error) {
+                if (
+                    error instanceof DOMException &&
+                    error.name === "AbortError"
+                ) {
+                    return;
+                }
+
                 console.error(
                     'Latest price refresh failed',
                     error,
@@ -197,21 +267,24 @@ export default function ItemPage() {
             }
         };
 
+        void refreshLatestPrice();
+
         const interval =
             window.setInterval(
-                refreshLatestPrice,
+                () => {
+                    void refreshLatestPrice();
+                },
                 60_000,
             );
 
         return () => {
+            controller.abort();
+
             window.clearInterval(
                 interval,
             );
         };
     }, [itemId]);
-
-    const FIVE_MINUTES = 5 * 60_000;
-    const UPDATE_DELAY = 5_000;
     useEffect(() => {
         if (!Number.isInteger(itemId) || range !== '24H') {
             return;
@@ -232,9 +305,12 @@ export default function ItemPage() {
                     return;
                 }
 
-                setHistoryByRange((current) => ({
-                    ...current,
-                    [range]: history,
+                setHistoryCache((current) => ({
+                    itemId,
+                    byRange: {
+                        ...(current.itemId === itemId ? current.byRange : {}),
+                        "24H": {data: history, fetchedAt: Date.now(),},
+                    },
                 }));
             } catch (error) {
                 if (!cancelled) {
@@ -247,22 +323,16 @@ export default function ItemPage() {
         };
 
         const scheduleNextRefresh = () => {
-            const now =
-                Date.now();
+            const delay = FIVE_MINUTES - Date.now() % FIVE_MINUTES + HISTORY_UPDATE_DELAY;
+            timeout = window.setTimeout(
+                async () => {
+                    await refreshHistory();
 
-            const timeUntilNextBoundary = FIVE_MINUTES - now % FIVE_MINUTES;
-            timeout =
-                window.setTimeout(
-                    async () => {
-                        await refreshHistory();
-
-                        if (!cancelled) {
-                            scheduleNextRefresh();
-                        }
-                    },
-                    timeUntilNextBoundary +
-                    UPDATE_DELAY,
-                );
+                    if (!cancelled) {
+                        scheduleNextRefresh();
+                    }
+                }, delay,
+            );
         };
 
         scheduleNextRefresh();

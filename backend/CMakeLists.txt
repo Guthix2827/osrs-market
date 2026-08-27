@@ -26,7 +26,7 @@ FetchContent_Declare(
 FetchContent_Declare(
     crow
     GIT_REPOSITORY https://github.com/CrowCpp/Crow.git
-    GIT_TAG v1.2.1
+    GIT_TAG v1.3.3
 )
 
 find_package(PkgConfig REQUIRED)

@@ -67,6 +67,10 @@ PricePoint rowToPricePoint(
 std::vector<PricePoint>
 PriceRepository::findLatestPerItem()
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work transaction{
         database_.connection()
     };
@@ -107,6 +111,10 @@ bool PriceRepository::insert(
     const PricePoint& point
 )
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work transaction{
         database_.connection()
     };
@@ -312,6 +320,10 @@ std::size_t PriceRepository::insertMany(
 {
     if (points.empty())
         return 0;
+    
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
 
     pqxx::work transaction{
         database_.connection()
@@ -370,6 +382,10 @@ PriceRepository::findOldestTimestamp(
     std::int32_t itemId
 )
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work transaction{
         database_.connection()
     };
@@ -406,6 +422,10 @@ PriceRepository::findNewestTimestamp(
     std::int32_t itemId
 )
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work transaction{
         database_.connection()
     };
@@ -442,6 +462,10 @@ PriceRepository::findLastBackfill(
     std::string_view lookback
 )
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work transaction{
         database_.connection()
     };
@@ -485,6 +509,10 @@ void PriceRepository::markBackfillComplete(
     std::string_view lookback
 )
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work transaction{
         database_.connection()
     };
@@ -520,6 +548,10 @@ void PriceRepository::markBackfillComplete(
 std::optional<std::int64_t>
 PriceRepository::findLatestTimestamp()
 {
+    std::lock_guard<std::mutex> lock{
+        database_.mutex()
+    };
+
     pqxx::work tx{
         database_.connection()
     };
