@@ -36,6 +36,29 @@ std::string orderByFor(
     return "change_percent DESC";
 }
 
+std::string eligibilityFor(
+    MarketMoverCategory category
+)
+{
+    switch (category)
+    {
+        case MarketMoverCategory::Gainers:
+        case MarketMoverCategory::Losers:
+            return R"(
+                AND cp.current_price >= 100
+                AND rp.reference_price >= 100
+                AND vt.volume >= 100
+                AND vt.traded_value >= 100000
+            )";
+
+        case MarketMoverCategory::Volume:
+        case MarketMoverCategory::Value:
+            return "";
+    }
+
+    return "";
+}
+
 MarketMoverItem rowToMarketMoverItem(
     const pqxx::row& row
 )
@@ -176,7 +199,13 @@ MarketMoversRepository::findMovers(
                                 NOW() AT TIME ZONE 'UTC'
                             ) AT TIME ZONE 'UTC'
                         )
-                    )::BIGINT - $1 AS from_timestamp
+                    )::BIGINT - $1 AS from_timestamp,
+
+                    CASE
+                        WHEN $1 >= 30 * 24 * 60 * 60
+                            THEN 3 * 24 * 60 * 60
+                        ELSE 6 * 60 * 60
+                    END::BIGINT AS reference_window
             ),
 
             range_events AS (
@@ -190,16 +219,26 @@ MarketMoversRepository::findMovers(
                     CASE
                         WHEN p.avg_high_price IS NOT NULL
                          AND p.avg_low_price IS NOT NULL
+                         AND p.avg_high_price >= p.avg_low_price
+                         AND (
+                            (
+                                p.avg_high_price -
+                                p.avg_low_price
+                            )::DOUBLE PRECISION /
+                            NULLIF(
+                                (
+                                    p.avg_high_price +
+                                    p.avg_low_price
+                                ) / 2.0,
+                                0
+                            )
+                         ) <= 0.20
                             THEN ROUND(
                                 (
                                     p.avg_high_price +
                                     p.avg_low_price
                                 ) / 2.0
                             )::BIGINT
-                        WHEN p.avg_high_price IS NOT NULL
-                            THEN p.avg_high_price
-                        WHEN p.avg_low_price IS NOT NULL
-                            THEN p.avg_low_price
                         ELSE NULL
                     END AS mid_price
                 FROM price_events p
@@ -208,41 +247,86 @@ MarketMoversRepository::findMovers(
                   AND p.timestamp <= b.to_timestamp
             ),
 
-            latest_current AS (
-                SELECT DISTINCT ON (p.item_id)
+            boundary_events AS (
+                SELECT
                     p.item_id,
+                    p.timestamp,
                     CASE
                         WHEN p.avg_high_price IS NOT NULL
                          AND p.avg_low_price IS NOT NULL
+                         AND p.avg_high_price >= p.avg_low_price
+                         AND (
+                            (
+                                p.avg_high_price -
+                                p.avg_low_price
+                            )::DOUBLE PRECISION /
+                            NULLIF(
+                                (
+                                    p.avg_high_price +
+                                    p.avg_low_price
+                                ) / 2.0,
+                                0
+                            )
+                         ) <= 0.20
                             THEN ROUND(
                                 (
                                     p.avg_high_price +
                                     p.avg_low_price
                                 ) / 2.0
                             )::BIGINT
-                        WHEN p.avg_high_price IS NOT NULL
-                            THEN p.avg_high_price
-                        WHEN p.avg_low_price IS NOT NULL
-                            THEN p.avg_low_price
                         ELSE NULL
-                    END AS current_price
+                    END AS mid_price
                 FROM price_events p
                 CROSS JOIN bounds b
-                WHERE p.timestamp <= b.to_timestamp
-                ORDER BY
-                    p.item_id,
-                    p.timestamp DESC
+                WHERE (
+                    p.timestamp >=
+                        b.from_timestamp - b.reference_window
+                    AND p.timestamp <=
+                        b.from_timestamp + b.reference_window
+                ) OR (
+                    p.timestamp >=
+                        b.to_timestamp - (6 * 60 * 60)
+                    AND p.timestamp <= b.to_timestamp
+                )
             ),
 
             reference_prices AS (
-                SELECT DISTINCT ON (r.item_id)
-                    r.item_id,
-                    r.mid_price AS reference_price
-                FROM range_events r
-                WHERE r.mid_price IS NOT NULL
-                ORDER BY
-                    r.item_id,
-                    r.timestamp ASC
+                SELECT
+                    e.item_id,
+                    ROUND(
+                        PERCENTILE_CONT(0.5)
+                        WITHIN GROUP (
+                            ORDER BY e.mid_price
+                        )
+                    )::BIGINT AS reference_price
+                FROM boundary_events e
+                CROSS JOIN bounds b
+                WHERE e.mid_price IS NOT NULL
+                  AND e.timestamp >=
+                    b.from_timestamp - b.reference_window
+                  AND e.timestamp <=
+                    b.from_timestamp + b.reference_window
+                GROUP BY e.item_id
+                HAVING COUNT(e.mid_price) >= 3
+            ),
+
+            current_prices AS (
+                SELECT
+                    e.item_id,
+                    ROUND(
+                        PERCENTILE_CONT(0.5)
+                        WITHIN GROUP (
+                            ORDER BY e.mid_price
+                        )
+                    )::BIGINT AS current_price
+                FROM boundary_events e
+                CROSS JOIN bounds b
+                WHERE e.mid_price IS NOT NULL
+                  AND e.timestamp >=
+                    b.to_timestamp - (6 * 60 * 60)
+                  AND e.timestamp <= b.to_timestamp
+                GROUP BY e.item_id
+                HAVING COUNT(e.mid_price) >= 3
             ),
 
             volume_totals AS (
@@ -273,15 +357,15 @@ MarketMoversRepository::findMovers(
                 SELECT
                     i.id AS item_id,
                     ir.name,
-                    lc.current_price,
+                    cp.current_price,
                     rp.reference_price,
                     (
-                        lc.current_price -
+                        cp.current_price -
                         rp.reference_price
                     )::BIGINT AS change,
                     (
                         (
-                            lc.current_price -
+                            cp.current_price -
                             rp.reference_price
                         )::DOUBLE PRECISION /
                         NULLIF(
@@ -294,16 +378,17 @@ MarketMoversRepository::findMovers(
                 FROM items i
                 JOIN item_revisions ir
                     ON ir.id = i.current_revision_id
-                JOIN latest_current lc
-                    ON lc.item_id = i.id
+                JOIN current_prices cp
+                    ON cp.item_id = i.id
                 JOIN reference_prices rp
                     ON rp.item_id = i.id
                 JOIN volume_totals vt
                     ON vt.item_id = i.id
-                WHERE lc.current_price IS NOT NULL
+                WHERE cp.current_price IS NOT NULL
                   AND rp.reference_price IS NOT NULL
                   AND rp.reference_price > 0
                   AND vt.volume > 0
+)" + eligibilityFor(category) + R"(
             )
 
             SELECT

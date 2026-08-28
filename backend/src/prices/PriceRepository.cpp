@@ -216,10 +216,20 @@ PriceRepository::findHistory(
                             )
                         )::BIGINT AS timestamp,
 
-                        ROUND(AVG(avg_high_price))::BIGINT
+                        ROUND(
+                            PERCENTILE_CONT(0.5)
+                            WITHIN GROUP (
+                                ORDER BY avg_high_price
+                            )
+                        )::BIGINT
                             AS avg_high_price,
 
-                        ROUND(AVG(avg_low_price))::BIGINT
+                        ROUND(
+                            PERCENTILE_CONT(0.5)
+                            WITHIN GROUP (
+                                ORDER BY avg_low_price
+                            )
+                        )::BIGINT
                             AS avg_low_price,
 
                         SUM(high_price_volume)::BIGINT
@@ -264,10 +274,20 @@ PriceRepository::findHistory(
                             )
                         )::BIGINT AS timestamp,
 
-                        MAX(avg_high_price)::BIGINT
+                        ROUND(
+                            PERCENTILE_CONT(0.5)
+                            WITHIN GROUP (
+                                ORDER BY avg_high_price
+                            )
+                        )::BIGINT
                             AS avg_high_price,
 
-                        MIN(avg_low_price)::BIGINT
+                        ROUND(
+                            PERCENTILE_CONT(0.5)
+                            WITHIN GROUP (
+                                ORDER BY avg_low_price
+                            )
+                        )::BIGINT
                             AS avg_low_price,
 
                         SUM(high_price_volume)::BIGINT
