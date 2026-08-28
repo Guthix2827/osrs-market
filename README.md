@@ -13,10 +13,6 @@ The goal is to build a fast, self-contained market data service that does not re
 
 ## Project Status
 
-This project is currently under active development. The core backend data pipeline and the first complete item-market frontend are now working end to end.
-
-## Project Status
-
 OSRS Market is under active development. The core market-data pipeline, historical price system, authentication layer, market discovery features, and responsive frontend are working end to end.
 
 ### Implemented
