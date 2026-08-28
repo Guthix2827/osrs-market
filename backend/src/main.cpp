@@ -586,8 +586,6 @@ int main(
             
             if (!needsBackfill)
             {
-                filterPriceOutliers(points);
-
                 historyCache.set(
                     itemId,
                     range,
