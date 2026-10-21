@@ -12,6 +12,9 @@
 #include <string>
 #include <string_view>
 
+#include <cmath>
+#include <limits>
+
 namespace
 {
 
@@ -21,27 +24,39 @@ constexpr auto TIMESERIES_URL =
 constexpr auto USER_AGENT =
     "osrs-market/0.1 (github.com/Guthix2827/osrs-market)";
 
+
 std::optional<std::int64_t> getOptionalInt64(
     const nlohmann::json& object,
-    const char* key
-)
+    const std::string& key)
 {
-    if (!object.contains(key) ||
-        object.at(key).is_null())
+    if (!object.contains(key) || object.at(key).is_null())
     {
         return std::nullopt;
     }
 
-    if (!object.at(key).is_number_integer())
+    const auto& value = object.at(key);
+
+    if (!value.is_number())
     {
         throw std::runtime_error(
-            std::string{
-                "Invalid timeseries point: "
-            } + key + " must be an integer or null"
+            "Invalid timeseries point: " + key +
+            " must be numeric or null"
         );
     }
 
-    return object.at(key).get<std::int64_t>();
+    const double number = value.get<double>();
+
+    if (!std::isfinite(number) ||
+        number < 0 ||
+        number >= 9223372036854775808.0)
+    {
+        throw std::runtime_error(
+            "Invalid timeseries point: " + key +
+            " is outside the valid price range"
+        );
+    }
+
+    return static_cast<std::int64_t>(std::round(number));
 }
 
 std::int64_t getRequiredInt64(
