@@ -78,17 +78,27 @@ PriceRepository::findLatestPerItem()
     const auto result =
         transaction.exec(
             R"(
-                SELECT DISTINCT ON (item_id)
-                    item_id,
-                    timestamp,
-                    avg_high_price,
-                    avg_low_price,
-                    high_price_volume,
-                    low_price_volume
-                FROM price_events
-                ORDER BY
-                    item_id,
-                    timestamp DESC
+                SELECT
+                    p.item_id,
+                    p.timestamp,
+                    p.avg_high_price,
+                    p.avg_low_price,
+                    p.high_price_volume,
+                    p.low_price_volume
+                FROM items i
+                CROSS JOIN LATERAL (
+                    SELECT
+                        item_id,
+                        timestamp,
+                        avg_high_price,
+                        avg_low_price,
+                        high_price_volume,
+                        low_price_volume
+                    FROM price_events
+                    WHERE item_id = i.id
+                    ORDER BY timestamp DESC
+                    LIMIT 1
+                ) p;
             )"
         );
 
