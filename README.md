@@ -1191,6 +1191,84 @@ Old School RuneScape and RuneScape are trademarks of Jagex Ltd.
 
 ---
 
+### Production Service Management
+
+Production Docker Compose commands must load both environment files:
+
+- `.env.production` — production configuration
+- `.secrets/production.env` — sensitive credentials and authentication configuration
+
+Run commands from the repository root.
+
+**Recreate the backend**
+
+Useful when the backend needs to reload its in-memory item mapping, recover from an unhealthy state, or restart its background workers.
+
+```bash
+docker compose \
+  --env-file .env.production \
+  --env-file .secrets/production.env \
+  -f docker-compose.prod.yml \
+  up -d --force-recreate backend
+```
+
+**Recreate the authentication service**
+
+Useful when authentication configuration has changed or the authentication container is unhealthy.
+
+```bash
+docker compose \
+  --env-file .env.production \
+  --env-file .secrets/production.env \
+  -f docker-compose.prod.yml \
+  up -d --force-recreate auth
+```
+
+**Rebuild and deploy the backend**
+
+Required when deploying changes to the C++ backend code or Docker image.
+
+```bash
+docker compose \
+  --env-file .env.production \
+  --env-file .secrets/production.env \
+  -f docker-compose.prod.yml \
+  up -d --build backend
+```
+
+**Check service status**
+
+```bash
+docker compose \
+  --env-file .env.production \
+  --env-file .secrets/production.env \
+  -f docker-compose.prod.yml \
+  ps
+```
+
+**Follow backend logs**
+
+```bash
+docker compose \
+  --env-file .env.production \
+  -f docker-compose.prod.yml \
+  logs -f --tail=100 backend
+```
+
+**Troubleshooting newly added items**
+
+When newly added RuneScape items are missing or display incomplete information:
+
+1. Inspect backend logs for mapping refresh failures or database foreign-key errors.
+2. Confirm the item exists in the `items` table and has a current entry in `item_revisions`.
+3. Check whether the backend mapping refresh has completed.
+4. Recreate the backend if its in-memory state appears stale.
+5. Verify the item's price history against the upstream RuneScape Wiki API before modifying historical records.
+
+**Important:** Recreating a service does not rebuild its Docker image. Use `--build` when deploying code changes. Do not run `backfill-all` as a general-purpose restart or assume it repairs invalid upstream historical data.
+
+---
+
 # Project Goals
 
 This project is primarily being developed to explore and practice:
