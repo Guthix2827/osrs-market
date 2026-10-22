@@ -324,7 +324,7 @@
 
 .stats-strip {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
 
     padding: 16px 0;
 
@@ -764,7 +764,7 @@
     min-height: 94px;
 
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(5, 1fr);
 
     margin-top: 14px;
 }
