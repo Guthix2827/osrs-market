@@ -418,7 +418,7 @@ export default function ItemPage() {
                 ? netMargin * metaItem.buyLimit
                 : null;
 
-        const dailyVolume =
+        const totalVolume =
             history.reduce(
                 (sum, point) =>
                     sum +
@@ -426,6 +426,9 @@ export default function ItemPage() {
                     point.lowPriceVolume,
                 0,
             );
+
+        const rangeDays: Record<string, number> = {'24H': 1, '7D': 7, '30D': 30, '1Y': 365};
+        const dailyVolume = Math.round(totalVolume / rangeDays[range]);
 
         return {
             margin,
@@ -440,21 +443,6 @@ export default function ItemPage() {
         price.high,
         price.low,
     ]);
-
-    const dailyVolume = useMemo(() => {
-        const now = Math.floor(Date.now() / 1000);
-        const cutoff = now - 24 * 60 * 60;
-
-        return history
-            .filter(point => point.timestamp >= cutoff)
-            .reduce(
-                (total, point) =>
-                    total +
-                    point.highPriceVolume +
-                    point.lowPriceVolume,
-                0,
-            );
-    }, [history]);
 
     const pricesChartHistory = useMemo(
         () =>
@@ -781,11 +769,6 @@ export default function ItemPage() {
                                     stats.potentialProfit > 0
                                 }
                             />
-
-                            <Stat
-                                label="Daily volume"
-                                value={formatGp(dailyVolume)}
-                            />
                         </div>
 
                         <div className="chart-toolbar">
@@ -923,15 +906,6 @@ export default function ItemPage() {
                         value={
                             metaItem.buyLimit !== null
                                 ? `${metaItem.buyLimit} / 4h`
-                                : "—"
-                        }
-                    />
-
-                    <Detail
-                        label="Daily volume"
-                        value={
-                            stats.dailyVolume !== null
-                                ? formatGp(stats.dailyVolume)
                                 : "—"
                         }
                     />
