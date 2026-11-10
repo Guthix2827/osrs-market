@@ -1,5 +1,4 @@
 import {
-    Navigate,
     Route,
     Routes,
 } from "react-router-dom";
@@ -11,6 +10,7 @@ import { Footer } from "./components/Footer";
 import "./App.css";
 import {MarketMoversPage} from "./pages/MarketMoversPage.tsx";
 import {AppProviders} from "./components/AppProviders.tsx";
+import HomePage from "./pages/HomePage.tsx";
 
 function AppContent() {
     return (
@@ -28,15 +28,7 @@ function AppContent() {
                     element={<AboutPage />}
                 />
 
-                <Route
-                    path="/"
-                    element={
-                        <Navigate
-                            to="/items/6739"
-                            replace
-                        />
-                    }
-                />
+                <Route path="/" element={<HomePage />} />
 
                 <Route
                     path="/market-movers"
