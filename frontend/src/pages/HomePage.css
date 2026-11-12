@@ -27,15 +27,6 @@
     color: var(--home-gold);
 }
 
-.home-eyebrow {
-    display: inline-block;
-    color: var(--home-gold);
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.035em;
-    padding-left: 5px;
-}
-
 /* Hero */
 
 .home-hero {
@@ -387,7 +378,7 @@
         display: contents;
     }
 
-    .home-competition-content .home-eyebrow,
+    .home-competition-content,
     .home-competition-content h2 {
         grid-column: 2;
     }

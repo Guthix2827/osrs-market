@@ -14,11 +14,18 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       "^/auth/(login|callback|session|logout|health)(?:\\?|$)": {
-        target:
-            "http://127.0.0.1:3000",
+        target: "http://127.0.0.1:3000",
+        changeOrigin: false,
+      },
 
-        changeOrigin:
-            false,
+      "/api": {
+        target: "http://127.0.0.1:8081",
+        changeOrigin: true,
+      },
+
+      "/icons": {
+        target: "http://127.0.0.1:8081",
+        changeOrigin: true,
       },
     },
   },

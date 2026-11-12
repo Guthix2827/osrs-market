@@ -813,6 +813,14 @@
     color: var(--text);
 }
 
+.item-container--merch {
+    margin-bottom: -42px;
+}
+
+.item-container--merch .item-details {
+    margin-bottom: 1rem;
+}
+
 /* Responsive */
 
 @media (max-width: 1180px) {

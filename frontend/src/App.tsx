@@ -11,6 +11,10 @@ import "./App.css";
 import {MarketMoversPage} from "./pages/MarketMoversPage.tsx";
 import {AppProviders} from "./components/AppProviders.tsx";
 import HomePage from "./pages/HomePage.tsx";
+import PortfolioPage from "./pages/PortfolioPage.tsx";
+import VirtualMerchHiscoresPage from "./pages/VirtualMerchHiscoresPage.tsx";
+import {VirtualMerchCreatePage} from "./pages/VirtualMerchCreatePage.tsx";
+import VirtualMerchLandingPage from "./pages/VirtualMerchLandingPage.tsx";
 
 function AppContent() {
     return (
@@ -34,6 +38,20 @@ function AppContent() {
                     path="/market-movers"
                     element={<MarketMoversPage/>}
                 />
+
+                <Route path="/merch/get-started" element={<VirtualMerchLandingPage />} />
+
+                <Route
+                    path="/merch/portfolio"
+                    element={<PortfolioPage/>}
+                />
+
+                <Route
+                    path="/merch/hiscores"
+                    element={<VirtualMerchHiscoresPage />}
+                />
+
+                <Route path="/merch/create" element={<VirtualMerchCreatePage />} />
             </Routes>
 
             <Footer />

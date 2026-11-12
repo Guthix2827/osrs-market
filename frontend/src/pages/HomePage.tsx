@@ -75,9 +75,7 @@ export default function HomePage() {
 
                 <section className="home-hero">
                     <div className="home-hero-content">
-                        <span className="home-eyebrow">Old School Runescape</span>
                         <h1>OSRS Market</h1>
-
                         <p>
                             Track Grand Exchange prices, explore market trends, discover profitable flips, and put your trading skills to the test with virtual merching.
                         </p>

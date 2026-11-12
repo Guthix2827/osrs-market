@@ -20,6 +20,9 @@ import {calculateGeTax} from "../utils/ge.ts";
 import {useWatchlist} from "../components/watchlist/WatchlistContext.tsx";
 import {API_BASE_URL} from "../config/api.ts";
 import {watchlistService} from "../services/watchlistService.ts";
+import {TradeDrawer, type VirtualOfferDraft} from "../components/virtual-merch/TradeDrawer.tsx";
+import VirtualMerchBar from "../components/virtual-merch/VirtualMerchBar.tsx";
+import type {VirtualMerchAccount} from "../components/virtual-merch/VirtualMerchAccount.ts";
 
 function formatGp(value: number) {
     return new Intl.NumberFormat('en-US').format(value);
@@ -93,6 +96,19 @@ export default function ItemPage() {
     //live last buy & sell
     const [now, setNow] = useState(() => Date.now());
     const [latestFetchedAt, setLatestFetchedAt] = useState(() => Date.now());
+
+    //trading
+    const [tradeOpen, setTradeOpen] = useState(false);
+    const [mockAccount, setMockAccount] = useState<VirtualMerchAccount>({
+        holdings: undefined,
+        authenticated: true, // MOCK ONLY: replace with AuthProvider/session
+        hasPortfolio: true,  // MOCK ONLY: replace with portfolio API
+        availableGp: 100_000_000,
+        activeOffers: 2,
+        maxOffers: 8,
+        tradingPaused: false
+    });
+    const [mockOwned, setMockOwned] = useState(0);
 
     useEffect(() => {
         const interval = window.setInterval(() => {
@@ -583,8 +599,22 @@ export default function ItemPage() {
         soldPercent,
     } = tradeDistribution;
 
+    const handleMockOffer = (offer: VirtualOfferDraft) => {
+        const cost = offer.unitPriceGp * offer.quantity;
+        // UI demo only: no actual order, fill, or portfolio is persisted.
+        setMockAccount(current => ({
+            ...current,
+            availableGp: current.availableGp - (offer.side === 'buy' ? cost : 0),
+            activeOffers: current.activeOffers + 1,
+        }));
+        if (offer.side === 'sell') setMockOwned(current => current - offer.quantity);
+        setTradeOpen(false);
+    };
+
+    const showMerchBar = mockAccount.authenticated && mockAccount.hasPortfolio;
+
     return (
-        <main className="item-container">
+        <main className={`item-container ${showMerchBar ? 'item-container--merch' : ''}`}>
                 <section className="item-hero">
                     <div className="item-identity">
                         <div className="item-icon-frame">
@@ -920,6 +950,33 @@ export default function ItemPage() {
                         value={String(metaItem.id)}
                     />
                 </section>
+
+                {showMerchBar && (
+                    <>
+                        <VirtualMerchBar
+                            availableGp={mockAccount.availableGp}
+                            activeOffers={mockAccount.activeOffers}
+                            maxOffers={mockAccount.maxOffers}
+                            onNewOffer={() => setTradeOpen(true)}
+                        />
+                        <TradeDrawer
+                            open={tradeOpen}
+                            item={metaItem ? {
+                                id: metaItem.id,
+                                name: metaItem.name,
+                                icon: metaItem.icon,
+                                instantBuy: latestPrice?.high ?? null,
+                                instantSell: latestPrice?.low ?? null,
+                                buyLimit: metaItem.buyLimit ?? null,
+                            } : null}
+                            account={mockAccount}
+                            ownedQuantity={mockOwned}
+                            onClose={() => setTradeOpen(false)}
+                            onPlaceOffer={handleMockOffer}
+                        />
+                    </>
+                )}
+
             </main>
     );
 }

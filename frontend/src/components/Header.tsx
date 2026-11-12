@@ -24,6 +24,7 @@ import {
 } from "./auth/AuthContext.tsx";
 
 import "../styles/Header.css";
+import VirtualMerchMenu from "./VirtualMerchMenu.tsx";
 
 
 export function Header() {
@@ -123,6 +124,12 @@ export function Header() {
                         >
                             Watchlist
                         </button>
+
+                        <VirtualMerchMenu />
+
+                        <Link to="/about">
+                            About
+                        </Link>
                     </nav>
 
                     <div className="market-header-search">
